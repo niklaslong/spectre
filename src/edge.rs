@@ -3,11 +3,34 @@ use std::{
     hash::{Hash, Hasher},
 };
 
+/// A pair of vertices representing a graph edge. Edges don't have a direction, despite the
+/// `source`-`target` nomenclature used.
 #[derive(Debug, Clone)]
 pub struct Edge<T> {
     source: T,
     target: T,
 }
+
+// Core implementation
+
+impl<T> Edge<T> {
+    /// Creates a new edge from two vertices.
+    pub fn new(source: T, target: T) -> Self {
+        Self { source, target }
+    }
+
+    /// Returns the first vertice forming the edge.
+    pub fn source(&self) -> &T {
+        &self.source
+    }
+
+    /// Returns the second vertice forming the edge.
+    pub fn target(&self) -> &T {
+        &self.target
+    }
+}
+
+// Trait implementations
 
 impl<T: PartialEq> PartialEq for Edge<T> {
     fn eq(&self, other: &Self) -> bool {
@@ -36,15 +59,11 @@ impl<T: Hash + Ord> Hash for Edge<T> {
     }
 }
 
-impl<T> Edge<T> {
-    fn new(source: T, target: T) -> Self {
-        Self { source, target }
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    // Core implementation
 
     #[test]
     fn new() {
@@ -52,6 +71,24 @@ mod tests {
 
         assert_eq!(Edge::new(source, target), Edge { source, target })
     }
+
+    #[test]
+    fn source() {
+        let (a, b) = ("a", "b");
+        let edge = Edge::new(a, b);
+
+        assert_eq!(edge.source(), &a);
+    }
+
+    #[test]
+    fn target() {
+        let (a, b) = ("a", "b");
+        let edge = Edge::new(a, b);
+
+        assert_eq!(edge.target(), &b);
+    }
+
+    // Trait implementations
 
     #[test]
     fn partial_eq() {
