@@ -114,7 +114,7 @@ where
         let degree_matrix = self.degree_matrix();
         let adjacency_matrix = self.adjacency_matrix();
 
-        degree_matrix.clone().sub(&adjacency_matrix)
+        degree_matrix.sub(&adjacency_matrix)
     }
 
     //
