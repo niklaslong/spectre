@@ -1,10 +1,19 @@
-use std::{collections::HashSet, hash::Hash};
+use std::{
+    collections::{BTreeMap, HashSet},
+    hash::Hash,
+};
 
 use crate::edge::Edge;
 
 /// An undirected graph, made up of edges.
 #[derive(Clone, Debug, Default)]
-pub struct Graph<T>(HashSet<Edge<T>>);
+pub struct Graph<T> {
+    /// The edges in the graph.
+    edges: HashSet<Edge<T>>,
+    /// A mapping of vertices to an ID that can be used to construct the various matrices used for
+    /// computing the measurements.
+    index: Option<BTreeMap<T, usize>>,
+}
 
 impl<T> Graph<T>
 where
@@ -13,12 +22,20 @@ where
 {
     /// Inserts an edge into the graph.
     pub fn insert(&mut self, edge: Edge<T>) -> bool {
-        self.0.insert(edge)
+        let is_inserted = self.edges.insert(edge);
+
+        // Delete the index if the edge was successfully inserted because we can't reliably update
+        // it from the new connection alone.
+        if is_inserted && self.index.is_some() {
+            self.index = None
+        }
+
+        is_inserted
     }
 
     /// Checks if the graph contains an edge.
     pub fn contains(&self, edge: &Edge<T>) -> bool {
-        self.0.contains(edge)
+        self.edges.contains(edge)
     }
 
     /// Returns the vertex count of the graph.
@@ -28,7 +45,7 @@ where
 
     /// Returns the edge count of the graph.
     pub fn edge_count(&self) -> usize {
-        self.0.len()
+        self.edges.len()
     }
 
     /// Computes the density of the graph, the ratio of edges with respect to the maximum possible
@@ -47,7 +64,7 @@ where
 
     fn vertices_from_edges(&self) -> HashSet<T> {
         let mut vertices: HashSet<T> = HashSet::new();
-        for edge in self.0.iter() {
+        for edge in self.edges.iter() {
             // Using a hashset guarantees uniqueness.
             vertices.insert(*edge.source());
             vertices.insert(*edge.target());
