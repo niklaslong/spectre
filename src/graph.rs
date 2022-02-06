@@ -65,7 +65,7 @@ where
         ec / pec
     }
 
-    /// Generates the adjacency matrix for this graph.
+    /// Constructs the adjacency matrix for this graph.
     pub fn adjacency_matrix(&mut self) -> DMatrix<f64> {
         self.generate_index();
 
@@ -85,6 +85,26 @@ where
             // writted (as the graph is unidrected) for each edge.
             matrix[(*i, *j)] = 1.0;
             matrix[(*j, *i)] = 1.0;
+        }
+
+        matrix
+    }
+
+    /// Constructs the degree matrix for this graph.
+    ///
+    /// Note: the degree matrix is constructed from the adjacency matrix.
+    pub fn degree_matrix(&mut self) -> DMatrix<f64> {
+        let adjacency_matrix = self.adjacency_matrix();
+
+        // Safety: the previous call guarantees the index has been generated and stored.
+        let n = self.index.as_ref().unwrap().len();
+        let mut matrix = DMatrix::<f64>::zeros(n, n);
+
+        for (i, row) in adjacency_matrix.row_iter().enumerate() {
+            // Set the diagonal to be the sum of edges in that row. The index isn't necessary
+            // here since the rows are visited in order and the adjacency matrix is ordered after the
+            // index.
+            matrix[(i, i)] = row.sum()
         }
 
         matrix
@@ -194,6 +214,38 @@ mod tests {
             graph.adjacency_matrix(),
             dmatrix![0.0, 1.0;
                      1.0, 0.0]
+        );
+
+        graph.insert(Edge::new("a", "c"));
+        assert_eq!(
+            graph.adjacency_matrix(),
+            dmatrix![0.0, 1.0, 1.0;
+                     1.0, 0.0, 0.0;
+                     1.0, 0.0, 0.0]
+        );
+
+        // Sanity check the index gets stored.
+        assert!(graph.index.is_some());
+    }
+
+    #[test]
+    fn degree_matrix() {
+        let mut graph = Graph::default();
+        assert_eq!(graph.degree_matrix(), dmatrix![]);
+
+        graph.insert(Edge::new("a", "b"));
+        assert_eq!(
+            graph.degree_matrix(),
+            dmatrix![1.0, 0.0;
+                     0.0, 1.0]
+        );
+
+        graph.insert(Edge::new("a", "c"));
+        assert_eq!(
+            graph.degree_matrix(),
+            dmatrix![2.0, 0.0, 0.0;
+                     0.0, 1.0, 0.0;
+                     0.0, 0.0, 1.0]
         );
 
         // Sanity check the index gets stored.
