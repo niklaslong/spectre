@@ -3,6 +3,8 @@ use std::{
     hash::Hash,
 };
 
+use nalgebra::DMatrix;
+
 use crate::edge::Edge;
 
 /// An undirected graph, made up of edges.
@@ -10,15 +12,18 @@ use crate::edge::Edge;
 pub struct Graph<T> {
     /// The edges in the graph.
     edges: HashSet<Edge<T>>,
-    /// A mapping of vertices to an ID that can be used to construct the various matrices used for
-    /// computing the measurements.
+    /// A mapping of vertices to their indices to be used when constructing the various matrices
+    /// representing the graph.
+    ///
+    /// The use of a `BTreeMap` means we need the `Ord` bound on `T`. The sorted collection allows
+    /// us to maintain some form of order between computations, which can be useful for debugging.
     index: Option<BTreeMap<T, usize>>,
 }
 
 impl<T> Graph<T>
 where
     Edge<T>: Eq + Hash,
-    T: Copy + Eq + Hash,
+    T: Copy + Eq + Hash + Ord,
 {
     /// Inserts an edge into the graph.
     pub fn insert(&mut self, edge: Edge<T>) -> bool {
@@ -60,8 +65,34 @@ where
         ec / pec
     }
 
+    /// Generates the adjacency matrix for this graph.
+    pub fn adjacency_matrix(&mut self) -> DMatrix<f64> {
+        self.generate_index();
+
+        // Safety: the previous call guarantees the index has been generated and stored.
+        let n = self.index.as_ref().unwrap().len();
+        let mut matrix = DMatrix::<f64>::zeros(n, n);
+
+        // Compute the adjacency matrix. As our we're assuming the graph is undirected, the adjacency matrix is
+        // symmetric.
+        for edge in &self.edges {
+            // Safety: get the indices for each edge in the graph, these must be present as the
+            // index was generated from this set of edges.
+            let i = self.index.as_ref().unwrap().get(edge.source()).unwrap();
+            let j = self.index.as_ref().unwrap().get(edge.target()).unwrap();
+
+            // Since edges are guaranteed to be unique, both the upper and lower triangles must be
+            // writted (as the graph is unidrected) for each edge.
+            matrix[(*i, *j)] = 1.0;
+            matrix[(*j, *i)] = 1.0;
+        }
+
+        matrix
+    }
+
     // Private API
 
+    /// Returns the set of unique vertices contained within the set of edges.
     fn vertices_from_edges(&self) -> HashSet<T> {
         let mut vertices: HashSet<T> = HashSet::new();
         for edge in self.edges.iter() {
@@ -72,10 +103,25 @@ where
 
         vertices
     }
+
+    /// Constructs and stores an index of vertices for this set of edges.
+    fn generate_index(&mut self) {
+        let vertices = self.vertices_from_edges();
+
+        let index: BTreeMap<T, usize> = vertices
+            .iter()
+            .enumerate()
+            .map(|(i, &vertex)| (vertex, i))
+            .collect();
+
+        self.index = Some(index);
+    }
 }
 
 #[cfg(test)]
 mod tests {
+    use nalgebra::dmatrix;
+
     use super::*;
 
     #[test]
@@ -131,5 +177,21 @@ mod tests {
 
         graph.insert(Edge::new("a", "c"));
         assert_eq!(graph.density(), 2.0 / 3.0);
+    }
+
+    #[test]
+    fn adjacency_matrix() {
+        let mut graph = Graph::default();
+        assert_eq!(graph.adjacency_matrix(), dmatrix![]);
+
+        graph.insert(Edge::new("a", "b"));
+        assert_eq!(
+            graph.adjacency_matrix(),
+            dmatrix![0.0, 1.0;
+                     1.0, 0.0]
+        );
+
+        // Sanity check the index gets stored.
+        assert!(graph.index.is_some())
     }
 }
