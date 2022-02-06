@@ -105,8 +105,11 @@ where
     }
 
     /// Constructs and stores an index of vertices for this set of edges.
+    ///
+    /// The index will be sorted by `T`'s implementation of `Ord`.
     fn generate_index(&mut self) {
-        let vertices = self.vertices_from_edges();
+        let mut vertices: Vec<T> = self.vertices_from_edges().into_iter().collect();
+        vertices.sort();
 
         let index: BTreeMap<T, usize> = vertices
             .iter()
@@ -192,6 +195,52 @@ mod tests {
         );
 
         // Sanity check the index gets stored.
-        assert!(graph.index.is_some())
+        assert!(graph.index.is_some());
+    }
+
+    // Private API
+
+    #[test]
+    fn vertices_from_edges() {
+        let mut graph = Graph::default();
+        assert!(graph.vertices_from_edges().is_empty());
+
+        let (a, b) = ("a", "b");
+        graph.insert(Edge::new(a, b));
+
+        let vertices = graph.vertices_from_edges();
+        assert!(vertices.contains(a));
+        assert!(vertices.contains(b));
+
+        // Sanity check the length.
+        assert_eq!(vertices.len(), 2);
+    }
+
+    #[test]
+    fn generate_index() {
+        let mut graph = Graph::default();
+
+        // Check for an empty graph.
+        graph.generate_index();
+        assert!(graph.index.is_some());
+        assert!(graph.index.as_ref().unwrap().is_empty());
+
+        let (a, b) = ("a", "b");
+        graph.insert(Edge::new(a, b));
+        graph.generate_index();
+
+        assert!(graph.index.is_some());
+
+        assert_eq!(
+            graph.index.as_ref().unwrap().get_key_value(a),
+            Some((&a, &(0 as usize)))
+        );
+
+        assert_eq!(
+            graph.index.as_ref().unwrap().get_key_value(b),
+            Some((&b, &(1 as usize)))
+        );
+
+        assert_eq!(graph.index.as_ref().unwrap().len(), 2);
     }
 }
