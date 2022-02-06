@@ -90,7 +90,9 @@ where
         matrix
     }
 
-    // Private API
+    //
+    // Private
+    //
 
     /// Returns the set of unique vertices contained within the set of edges.
     fn vertices_from_edges(&self) -> HashSet<T> {
@@ -198,7 +200,9 @@ mod tests {
         assert!(graph.index.is_some());
     }
 
-    // Private API
+    //
+    // Private
+    //
 
     #[test]
     fn vertices_from_edges() {

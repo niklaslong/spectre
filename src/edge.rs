@@ -11,8 +11,6 @@ pub struct Edge<T> {
     target: T,
 }
 
-// Core implementation
-
 impl<T> Edge<T> {
     /// Creates a new edge from two vertices.
     pub fn new(source: T, target: T) -> Self {
@@ -30,7 +28,9 @@ impl<T> Edge<T> {
     }
 }
 
+//
 // Trait implementations
+//
 
 impl<T: PartialEq> PartialEq for Edge<T> {
     fn eq(&self, other: &Self) -> bool {
@@ -63,8 +63,6 @@ impl<T: Hash + Ord> Hash for Edge<T> {
 mod tests {
     use super::*;
 
-    // Core implementation
-
     #[test]
     fn new() {
         let (source, target) = ("a", "b");
@@ -88,7 +86,9 @@ mod tests {
         assert_eq!(edge.target(), &b);
     }
 
+    //
     // Trait implementations
+    //
 
     #[test]
     fn partial_eq() {
