@@ -176,6 +176,9 @@ where
     ///
     /// The index will be sorted by `T`'s implementation of `Ord`.
     fn generate_index(&mut self) {
+        // It should be impossible to call this function if the cache is not empty.
+        debug_assert!(self.index.is_none());
+
         let mut vertices: Vec<T> = self.vertices_from_edges().into_iter().collect();
         vertices.sort();
 
