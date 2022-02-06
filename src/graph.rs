@@ -1,6 +1,7 @@
 use std::{
     collections::{BTreeMap, HashSet},
     hash::Hash,
+    ops::Sub,
 };
 
 use nalgebra::DMatrix;
@@ -91,8 +92,6 @@ where
     }
 
     /// Constructs the degree matrix for this graph.
-    ///
-    /// Note: the degree matrix is constructed from the adjacency matrix.
     pub fn degree_matrix(&mut self) -> DMatrix<f64> {
         let adjacency_matrix = self.adjacency_matrix();
 
@@ -108,6 +107,14 @@ where
         }
 
         matrix
+    }
+
+    /// Constructs the laplacian matrix for this graph.
+    pub fn laplacian_matrix(&mut self) -> DMatrix<f64> {
+        let degree_matrix = self.degree_matrix();
+        let adjacency_matrix = self.adjacency_matrix();
+
+        degree_matrix.clone().sub(&adjacency_matrix)
     }
 
     //
@@ -246,6 +253,30 @@ mod tests {
             dmatrix![2.0, 0.0, 0.0;
                      0.0, 1.0, 0.0;
                      0.0, 0.0, 1.0]
+        );
+
+        // Sanity check the index gets stored.
+        assert!(graph.index.is_some());
+    }
+
+    #[test]
+    fn laplacian_matrix() {
+        let mut graph = Graph::default();
+        assert_eq!(graph.degree_matrix(), dmatrix![]);
+
+        graph.insert(Edge::new("a", "b"));
+        assert_eq!(
+            graph.laplacian_matrix(),
+            dmatrix![1.0, -1.0;
+                     -1.0, 1.0]
+        );
+
+        graph.insert(Edge::new("a", "c"));
+        assert_eq!(
+            graph.laplacian_matrix(),
+            dmatrix![2.0, -1.0, -1.0;
+                     -1.0, 1.0, 0.0;
+                     -1.0, 0.0, 1.0]
         );
 
         // Sanity check the index gets stored.
