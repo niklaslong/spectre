@@ -5,7 +5,7 @@ use std::{
 
 /// A pair of vertices representing a graph edge. Edges don't have a direction, despite the
 /// `source`-`target` nomenclature used.
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug, Eq)]
 pub struct Edge<T> {
     source: T,
     target: T,
