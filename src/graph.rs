@@ -19,6 +19,12 @@ pub struct Graph<T> {
     /// The use of a `BTreeMap` means we need the `Ord` bound on `T`. The sorted collection allows
     /// us to maintain some form of order between computations, which can be useful for debugging.
     index: Option<BTreeMap<T, usize>>,
+    /// Cache the degree matrix when possible.
+    degree_matrix: Option<DMatrix<f64>>,
+    /// Cache the adjacency matrix when possible.
+    adjacency_matrix: Option<DMatrix<f64>>,
+    /// Cache the laplacian matrix when possible.
+    laplacian_matrix: Option<DMatrix<f64>>,
 }
 
 impl<T> Graph<T>
@@ -30,10 +36,10 @@ where
     pub fn insert(&mut self, edge: Edge<T>) -> bool {
         let is_inserted = self.edges.insert(edge);
 
-        // Delete the index if the edge was successfully inserted because we can't reliably update
-        // it from the new connection alone.
+        // Delete the cached objects if the edge was successfully inserted because we can't
+        // reliably update them from the new connection alone.
         if is_inserted && self.index.is_some() {
-            self.index = None
+            self.clear_cache()
         }
 
         is_inserted
@@ -68,6 +74,11 @@ where
 
     /// Constructs the adjacency matrix for this graph.
     pub fn adjacency_matrix(&mut self) -> DMatrix<f64> {
+        // Check the cache.
+        if let Some(matrix) = self.adjacency_matrix.clone() {
+            return matrix;
+        }
+
         self.generate_index();
 
         // Safety: the previous call guarantees the index has been generated and stored.
@@ -88,11 +99,19 @@ where
             matrix[(*j, *i)] = 1.0;
         }
 
+        // Cache the matrix.
+        self.adjacency_matrix = Some(matrix.clone());
+
         matrix
     }
 
     /// Constructs the degree matrix for this graph.
     pub fn degree_matrix(&mut self) -> DMatrix<f64> {
+        // Check the cache.
+        if let Some(matrix) = self.degree_matrix.clone() {
+            return matrix;
+        }
+
         let adjacency_matrix = self.adjacency_matrix();
 
         // Safety: the previous call guarantees the index has been generated and stored.
@@ -106,20 +125,40 @@ where
             matrix[(i, i)] = row.sum()
         }
 
+        // Cache the matrix.
+        self.degree_matrix = Some(matrix.clone());
+
         matrix
     }
 
     /// Constructs the laplacian matrix for this graph.
     pub fn laplacian_matrix(&mut self) -> DMatrix<f64> {
+        // Check the cache.
+        if let Some(matrix) = self.laplacian_matrix.clone() {
+            return matrix;
+        }
+
         let degree_matrix = self.degree_matrix();
         let adjacency_matrix = self.adjacency_matrix();
 
-        degree_matrix.sub(&adjacency_matrix)
+        let matrix = degree_matrix.sub(&adjacency_matrix);
+
+        // Cache the matrix.
+        self.laplacian_matrix = Some(matrix.clone());
+
+        matrix
     }
 
     //
     // Private
     //
+
+    fn clear_cache(&mut self) {
+        self.index = None;
+        self.degree_matrix = None;
+        self.adjacency_matrix = None;
+        self.laplacian_matrix = None;
+    }
 
     /// Returns the set of unique vertices contained within the set of edges.
     fn vertices_from_edges(&self) -> HashSet<T> {
@@ -286,6 +325,31 @@ mod tests {
     //
     // Private
     //
+
+    #[test]
+    fn clear_cache_on_insert() {
+        let mut graph = Graph::default();
+        graph.insert(Edge::new("a", "b"));
+
+        // The laplacian requires the computation of the index, the degree matrix and the adjacency
+        // matrix.
+        graph.laplacian_matrix();
+
+        // Check the objects have been cached.
+        assert!(graph.index.is_some());
+        assert!(graph.adjacency_matrix.is_some());
+        assert!(graph.degree_matrix.is_some());
+        assert!(graph.laplacian_matrix.is_some());
+
+        // Update the graph with an insert.
+        graph.insert(Edge::new("a", "c"));
+
+        // Check the cache has been cleared.
+        assert!(graph.index.is_none());
+        assert!(graph.adjacency_matrix.is_none());
+        assert!(graph.degree_matrix.is_none());
+        assert!(graph.laplacian_matrix.is_none());
+    }
 
     #[test]
     fn vertices_from_edges() {
