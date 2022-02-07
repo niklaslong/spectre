@@ -165,6 +165,10 @@ where
     // Private
     //
 
+    /// Clears the computed state.
+    ///
+    /// This should be called every time the set of edges is mutated since the cached state won't
+    /// correspond to the new graph.
     fn clear_cache(&mut self) {
         self.index = None;
         self.degree_matrix = None;
