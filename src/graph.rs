@@ -149,6 +149,18 @@ where
         matrix
     }
 
+    /// Returns the difference between the highest and lowest degree centrality in the network.
+    ///
+    /// Returns an `f64`, though the value should be a natural number.
+    pub fn degree_centrality_delta(&mut self) -> f64 {
+        let degree_matrix = self.degree_matrix();
+
+        let max = degree_matrix.diagonal().max();
+        let min = degree_matrix.diagonal().min();
+
+        max - min
+    }
+
     //
     // Private
     //
@@ -323,6 +335,18 @@ mod tests {
 
         // Sanity check the index gets stored.
         assert!(graph.index.is_some());
+    }
+
+    #[test]
+    fn degree_centrality_delta() {
+        let mut graph = Graph::default();
+        assert_eq!(graph.degree_centrality_delta(), 0.0);
+
+        graph.insert(Edge::new("a", "b"));
+        assert_eq!(graph.degree_centrality_delta(), 0.0);
+
+        graph.insert(Edge::new("a", "c"));
+        assert_eq!(graph.degree_centrality_delta(), 1.0);
     }
 
     //
