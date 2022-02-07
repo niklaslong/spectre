@@ -2,6 +2,12 @@
 name = "spectre"
 version = "0.1.0"
 edition = "2021"
+authors = ["niklaslong <niklas@long.ch>"]
+description = "A lightweight toolkit for analysing p2p network topologies."
+licence = "MIT"
+readme = "README.md"
+categories = ["algorithms"]
+keywords = ["p2p", "peer-to-peer", "networking"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
