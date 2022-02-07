@@ -316,7 +316,7 @@ mod tests {
     #[test]
     fn laplacian_matrix() {
         let mut graph = Graph::default();
-        assert_eq!(graph.degree_matrix(), dmatrix![]);
+        assert_eq!(graph.laplacian_matrix(), dmatrix![]);
 
         graph.insert(Edge::new("a", "b"));
         assert_eq!(
