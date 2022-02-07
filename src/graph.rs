@@ -206,6 +206,38 @@ where
             .collect()
     }
 
+    /// Returns the algebraic connectivity (Fiedler eigenvalue) of the graph and a mapping of the
+    /// edges to their Fiedler value (their associated component in the Fiedler eigenvector).
+    pub fn fiedler(&mut self) -> (f64, BTreeMap<T, f64>) {
+        let laplacian_matrix = self.laplacian_matrix();
+
+        // Early return if the matrix is empty, the rest of the computation requires a matrix with
+        // at least a dim of 1x1.
+        if laplacian_matrix.is_empty() {
+            return (0.0, BTreeMap::new());
+        }
+
+        // Compute the eigenvectors and corresponding eigenvalues and sort in ascending order.
+        let ascending = true;
+        let pairs = sorted_eigenvalue_vector_pairs(laplacian_matrix, ascending);
+
+        // Second-smallest eigenvalue of the Laplacian is the Fiedler value (algebraic connectivity), the associated
+        // eigenvector is the Fiedler vector.
+        let (algebraic_connectivity, fiedler_vector) = &pairs[1];
+
+        // Map addresses to their Fiedler values.
+        let fiedler_values_indexed = self
+            .index
+            .as_ref()
+            .unwrap()
+            .keys()
+            .zip(fiedler_vector.column(0).iter())
+            .map(|(addr, fiedler_value)| (*addr, *fiedler_value))
+            .collect();
+
+        (*algebraic_connectivity, fiedler_values_indexed)
+    }
+
     //
     // Private
     //
@@ -499,6 +531,53 @@ mod tests {
 
         // Sanity check the length.
         assert_eq!(eigenvalue_centrality.len(), 3);
+    }
+
+    #[test]
+    fn fiedler() {
+        let mut graph = Graph::default();
+
+        let (a, b, c, d) = ("a", "b", "c", "d");
+
+        // Disconnected graph.
+        graph.insert(Edge::new(a, b));
+        graph.insert(Edge::new(c, d));
+
+        // Algebraic connectivity should be 0.
+        let (algebraic_connectivity, fiedler_values_indexed) = graph.fiedler();
+        assert_eq!(algebraic_connectivity, 0.0);
+        assert_eq!(fiedler_values_indexed.get_key_value(a), Some((&a, &0.0)));
+        assert_eq!(fiedler_values_indexed.get_key_value(b), Some((&b, &0.0)));
+        assert_eq!(
+            fiedler_values_indexed.get_key_value(c),
+            Some((&c, &-0.7071067811865475))
+        );
+        assert_eq!(
+            fiedler_values_indexed.get_key_value(d),
+            Some((&d, &-0.7071067811865475))
+        );
+
+        // Connect the graph.
+        graph.insert(Edge::new(b, c));
+
+        let (algebraic_connectivity, fiedler_values_indexed) = graph.fiedler();
+        assert_eq!(algebraic_connectivity, 0.5857864376269044);
+        assert_eq!(
+            fiedler_values_indexed.get_key_value(a),
+            Some((&a, &0.6532814824381882))
+        );
+        assert_eq!(
+            fiedler_values_indexed.get_key_value(b),
+            Some((&b, &0.27059805007309845))
+        );
+        assert_eq!(
+            fiedler_values_indexed.get_key_value(c),
+            Some((&c, &-0.2705980500730985))
+        );
+        assert_eq!(
+            fiedler_values_indexed.get_key_value(d),
+            Some((&d, &-0.6532814824381881))
+        );
     }
 
     //
