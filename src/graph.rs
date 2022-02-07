@@ -4,7 +4,7 @@ use std::{
     ops::Sub,
 };
 
-use nalgebra::DMatrix;
+use nalgebra::{DMatrix, DVector, SymmetricEigen};
 
 use crate::edge::Edge;
 
@@ -175,6 +175,37 @@ where
             .collect()
     }
 
+    /// Returns a mapping of the edges to their eigenvalue centrality (the relative importance of the
+    /// edge) in the graph.
+    pub fn eigenvalue_centrality(&mut self) -> BTreeMap<T, f64> {
+        let adjacency_matrix = self.adjacency_matrix();
+
+        // Early return if the matrix is empty, the rest of the computation requires a matrix with
+        // at least a dim of 1x1.
+        if adjacency_matrix.is_empty() {
+            return BTreeMap::new();
+        }
+
+        // Compute the eigenvectors and corresponding eigenvalues and sort in descending order.
+        let ascending = false;
+        let eigenvalue_vector_pairs = sorted_eigenvalue_vector_pairs(adjacency_matrix, ascending);
+        let (_highest_eigenvalue, highest_eigenvector) = &eigenvalue_vector_pairs[0];
+
+        // The eigenvector is a relative score of node importance (normalised by the norm), to obtain an absolute score for each
+        // node, we normalise so that the sum of the components are equal to 1.
+        let sum = highest_eigenvector.sum() / self.index.as_ref().unwrap().len() as f64;
+        let normalised = highest_eigenvector.unscale(sum);
+
+        // Map addresses to their eigenvalue centrality.
+        self.index
+            .as_ref()
+            .unwrap()
+            .keys()
+            .zip(normalised.column(0).iter())
+            .map(|(addr, ec)| (*addr, *ec))
+            .collect()
+    }
+
     //
     // Private
     //
@@ -220,6 +251,44 @@ where
 
         self.index = Some(index);
     }
+}
+
+//
+// Helpers
+//
+
+/// Computes the eigenvalues and corresponding eigenvalues from the supplied symmetric matrix.
+fn sorted_eigenvalue_vector_pairs(
+    matrix: DMatrix<f64>,
+    ascending: bool,
+) -> Vec<(f64, DVector<f64>)> {
+    // Early return if the matrix is empty, the rest of the computation requires a matrix with
+    // at least a dim of 1x1.
+    if matrix.is_empty() {
+        return vec![];
+    }
+
+    // Compute eigenvalues and eigenvectors.
+    let eigen = SymmetricEigen::new(matrix);
+
+    // Map eigenvalues to their eigenvectors.
+    let mut pairs: Vec<(f64, DVector<f64>)> = eigen
+        .eigenvalues
+        .iter()
+        .zip(eigen.eigenvectors.column_iter())
+        .map(|(value, vector)| (*value, vector.clone_owned()))
+        .collect();
+
+    // Sort eigenvalue-vector pairs in descending order.
+    pairs.sort_unstable_by(|(a, _), (b, _)| {
+        if ascending {
+            a.partial_cmp(b).unwrap()
+        } else {
+            b.partial_cmp(a).unwrap()
+        }
+    });
+
+    pairs
 }
 
 #[cfg(test)]
@@ -387,14 +456,49 @@ mod tests {
         graph.insert(Edge::new(a, c));
         let degree_centrality = graph.degree_centrality();
 
-        println!("{:#?}", graph.degree_matrix.unwrap());
-
         assert_eq!(degree_centrality.get_key_value(a), Some((&a, &2)));
         assert_eq!(degree_centrality.get_key_value(b), Some((&b, &1)));
         assert_eq!(degree_centrality.get_key_value(c), Some((&c, &1)));
 
         // Sanity check the length.
         assert_eq!(degree_centrality.len(), 3);
+    }
+
+    #[test]
+    fn eigenvalue_centrality() {
+        let mut graph = Graph::default();
+        assert!(graph.eigenvalue_centrality().is_empty());
+
+        // One connection, centrality measures for each vertex should be 1.
+        let (a, b, c) = ("a", "b", "c");
+        graph.insert(Edge::new(a, b));
+        let eigenvalue_centrality = graph.eigenvalue_centrality();
+
+        assert_eq!(eigenvalue_centrality.get_key_value(a), Some((&a, &1.0)));
+        assert_eq!(eigenvalue_centrality.get_key_value(b), Some((&b, &1.0)));
+
+        // Sanity check the length.
+        assert_eq!(eigenvalue_centrality.len(), 2);
+
+        // Two connections, degree centrality for A should increase.
+        graph.insert(Edge::new(a, c));
+        let eigenvalue_centrality = graph.eigenvalue_centrality();
+
+        assert_eq!(
+            eigenvalue_centrality.get_key_value(a),
+            Some((&a, &1.2426406871192854))
+        );
+        assert_eq!(
+            eigenvalue_centrality.get_key_value(b),
+            Some((&b, &0.8786796564403571))
+        );
+        assert_eq!(
+            eigenvalue_centrality.get_key_value(c),
+            Some((&c, &0.8786796564403576))
+        );
+
+        // Sanity check the length.
+        assert_eq!(eigenvalue_centrality.len(), 3);
     }
 
     //
