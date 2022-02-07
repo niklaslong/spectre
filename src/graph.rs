@@ -161,6 +161,20 @@ where
         max - min
     }
 
+    /// Returns a mapping of the edges to their degree centrality (number of connections) in the graph.
+    pub fn degree_centrality(&mut self) -> BTreeMap<T, u32> {
+        let degree_matrix = self.degree_matrix();
+
+        // Safety: the previous call guarantees the index has been generated and stored.
+        self.index
+            .as_ref()
+            .unwrap()
+            .keys()
+            .zip(degree_matrix.diagonal().iter())
+            .map(|(addr, dc)| (*addr, *dc as u32))
+            .collect()
+    }
+
     //
     // Private
     //
@@ -351,6 +365,36 @@ mod tests {
 
         graph.insert(Edge::new("a", "c"));
         assert_eq!(graph.degree_centrality_delta(), 1.0);
+    }
+
+    #[test]
+    fn degree_centrality() {
+        let mut graph = Graph::default();
+        assert!(graph.degree_centrality().is_empty());
+
+        // One connection, centrality measures for each vertex should be 1.
+        let (a, b, c) = ("a", "b", "c");
+        graph.insert(Edge::new(a, b));
+        let degree_centrality = graph.degree_centrality();
+
+        assert_eq!(degree_centrality.get_key_value(a), Some((&a, &1)));
+        assert_eq!(degree_centrality.get_key_value(b), Some((&b, &1)));
+
+        // Sanity check the length.
+        assert_eq!(degree_centrality.len(), 2);
+
+        // Two connections, degree centrality for A should increase.
+        graph.insert(Edge::new(a, c));
+        let degree_centrality = graph.degree_centrality();
+
+        println!("{:#?}", graph.degree_matrix.unwrap());
+
+        assert_eq!(degree_centrality.get_key_value(a), Some((&a, &2)));
+        assert_eq!(degree_centrality.get_key_value(b), Some((&b, &1)));
+        assert_eq!(degree_centrality.get_key_value(c), Some((&c, &1)));
+
+        // Sanity check the length.
+        assert_eq!(degree_centrality.len(), 3);
     }
 
     //
