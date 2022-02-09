@@ -65,9 +65,9 @@ impl<T> Edge<T> {
     ///
     /// let edge = Edge::new("a", "b");
     ///
-    /// assert!(edge.contains(&"a"));
-    /// assert!(edge.contains(&"b"));
-    /// assert!(!edge.contains(&"c"));
+    /// assert_eq!(edge.contains(&"a"), true);
+    /// assert_eq!(edge.contains(&"b"), true);
+    /// assert_eq!(edge.contains(&"c"), false);
     /// ```
     pub fn contains(&self, vertex: &T) -> bool
     where
