@@ -65,7 +65,7 @@ where
 
     /// Removes an edge from the set and returns whether it was present in the set.
     ///
-    /// # Example
+    /// # Examples
     ///
     /// ```
     /// use spectre::edge::Edge;
@@ -140,6 +140,22 @@ where
     }
 
     /// Constructs the adjacency matrix for this graph.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use nalgebra::dmatrix;
+    /// use spectre::edge::Edge;
+    /// use spectre::graph::Graph;
+    ///
+    /// let mut graph = Graph::new();
+    /// graph.insert(Edge::new("a", "b"));
+    /// assert_eq!(
+    ///     graph.adjacency_matrix(),
+    ///     dmatrix![0.0, 1.0;
+    ///              1.0, 0.0]
+    /// );
+    /// ```
     pub fn adjacency_matrix(&mut self) -> DMatrix<f64> {
         // Check the cache.
         if let Some(matrix) = self.adjacency_matrix.clone() {
@@ -173,6 +189,22 @@ where
     }
 
     /// Constructs the degree matrix for this graph.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use nalgebra::dmatrix;
+    /// use spectre::edge::Edge;
+    /// use spectre::graph::Graph;
+    ///
+    /// let mut graph = Graph::new();
+    /// graph.insert(Edge::new("a", "b"));
+    /// assert_eq!(
+    ///     graph.degree_matrix(),
+    ///     dmatrix![1.0, 0.0;
+    ///              0.0, 1.0]
+    /// );
+    /// ```
     pub fn degree_matrix(&mut self) -> DMatrix<f64> {
         // Check the cache.
         if let Some(matrix) = self.degree_matrix.clone() {
@@ -199,6 +231,22 @@ where
     }
 
     /// Constructs the laplacian matrix for this graph.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use nalgebra::dmatrix;
+    /// use spectre::edge::Edge;
+    /// use spectre::graph::Graph;
+    ///
+    /// let mut graph = Graph::new();
+    /// graph.insert(Edge::new("a", "b"));
+    /// assert_eq!(
+    ///     graph.laplacian_matrix(),
+    ///     dmatrix![1.0, -1.0;
+    ///              -1.0, 1.0]
+    /// );
+    /// ```
     pub fn laplacian_matrix(&mut self) -> DMatrix<f64> {
         // Check the cache.
         if let Some(matrix) = self.laplacian_matrix.clone() {
@@ -223,8 +271,8 @@ where
     /// # Examples
     ///
     /// ```
-    /// use spectre::graph::Graph;
     /// use spectre::edge::Edge;
+    /// use spectre::graph::Graph;
     ///
     /// let mut graph = Graph::new();
     /// graph.insert(Edge::new("a", "b"));
