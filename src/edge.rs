@@ -15,16 +15,43 @@ pub struct Edge<T> {
 
 impl<T> Edge<T> {
     /// Creates a new edge from two vertices.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use spectre::edge::Edge;
+    ///
+    /// let edge = Edge::new("a", "b");
+    /// assert_eq!(edge, Edge::new("b", "a"));
+    /// ```
     pub fn new(source: T, target: T) -> Self {
         Self { source, target }
     }
 
     /// Returns the first vertice forming the edge.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use spectre::edge::Edge;
+    ///
+    /// let edge = Edge::new("a", "b");
+    /// assert_eq!(edge.source(), &"a");
+    /// ```
     pub fn source(&self) -> &T {
         &self.source
     }
 
     /// Returns the second vertice forming the edge.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use spectre::edge::Edge;
+    ///
+    /// let edge = Edge::new("a", "b");
+    /// assert_eq!(edge.target(), &"b");
+    /// ```
     pub fn target(&self) -> &T {
         &self.target
     }
