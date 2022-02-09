@@ -53,6 +53,22 @@ where
     }
 
     /// Returns the vertex count of the graph.
+    ///
+    /// This call constructs the collection of vertices from the collection of edges. This is
+    /// because the vertex set can't accurately be updated on the basis of the addition or the
+    /// removal of an edge alone.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use spectre::edge::Edge;
+    /// use spectre::graph::Graph;
+    ///
+    /// let mut graph = Graph::default();
+    /// graph.insert(Edge::new("a", "b"));
+    ///
+    /// assert_eq!(graph.vertex_count(), 2);
+    /// ```
     pub fn vertex_count(&self) -> usize {
         self.vertices_from_edges().len()
     }
@@ -64,6 +80,21 @@ where
 
     /// Computes the density of the graph, the ratio of edges with respect to the maximum possible
     /// edges.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use spectre::edge::Edge;
+    /// use spectre::graph::Graph;
+    ///
+    /// let mut graph = Graph::default();
+    ///
+    /// graph.insert(Edge::new("a", "b"));
+    /// assert_eq!(graph.density(), 1.0);
+    ///
+    /// graph.insert(Edge::new("a", "c"));
+    /// assert_eq!(graph.density(), 2.0 / 3.0);
+    /// ```
     pub fn density(&self) -> f64 {
         let vc = self.vertex_count() as f64;
         let ec = self.edge_count() as f64;
