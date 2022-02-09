@@ -34,6 +34,23 @@ where
     Edge<T>: Eq + Hash,
     T: Copy + Eq + Hash + Ord,
 {
+    /// Creates an empty graph.
+    ///
+    /// # Examples
+    ///
+    ///
+    /// ```
+    /// use spectre::graph::Graph;
+    ///
+    /// let graph: Graph<&str> = Graph::new();
+    /// ```
+    pub fn new() -> Self
+    where
+        T: Default,
+    {
+        Default::default()
+    }
+
     /// Inserts an edge into the graph.
     pub fn insert(&mut self, edge: Edge<T>) -> bool {
         let is_inserted = self.edges.insert(edge);
