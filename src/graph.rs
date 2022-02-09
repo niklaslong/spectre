@@ -258,8 +258,8 @@ where
         let eigenvalue_vector_pairs = sorted_eigenvalue_vector_pairs(adjacency_matrix, ascending);
         let (_highest_eigenvalue, highest_eigenvector) = &eigenvalue_vector_pairs[0];
 
-        // The eigenvector is a relative score of node importance (normalised by the norm), to obtain an absolute score for each
-        // node, we normalise so that the sum of the components are equal to 1.
+        // The eigenvector is a relative score of vertex importance (normalised by the norm), to obtain an absolute score for each
+        // vertex, we normalise so that the sum of the components are equal to 1.
         let sum = highest_eigenvector.sum() / self.index.as_ref().unwrap().len() as f64;
         let normalised = highest_eigenvector.unscale(sum);
 
