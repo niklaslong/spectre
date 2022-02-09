@@ -726,12 +726,12 @@ mod tests {
 
         assert_eq!(
             graph.index.as_ref().unwrap().get_key_value(a),
-            Some((&a, &(0 as usize)))
+            Some((&a, &0))
         );
 
         assert_eq!(
             graph.index.as_ref().unwrap().get_key_value(b),
-            Some((&b, &(1 as usize)))
+            Some((&b, &1))
         );
 
         assert_eq!(graph.index.as_ref().unwrap().len(), 2);
