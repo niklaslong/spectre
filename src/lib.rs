@@ -12,7 +12,7 @@
 //! use spectre::graph::Graph;
 //!
 //! // Construct the graph instance.
-//! let mut graph = Graph::default();
+//! let mut graph = Graph::new();
 //!
 //! // Insert some edges, note the IDs can be any type that is `Copy + Eq + Hash + Ord`.
 //! graph.insert(Edge::new("a", "b"));

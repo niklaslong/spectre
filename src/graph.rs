@@ -81,7 +81,7 @@ where
     /// use spectre::edge::Edge;
     /// use spectre::graph::Graph;
     ///
-    /// let mut graph = Graph::default();
+    /// let mut graph = Graph::new();
     /// graph.insert(Edge::new("a", "b"));
     ///
     /// assert_eq!(graph.vertex_count(), 2);
@@ -104,7 +104,7 @@ where
     /// use spectre::edge::Edge;
     /// use spectre::graph::Graph;
     ///
-    /// let mut graph = Graph::default();
+    /// let mut graph = Graph::new();
     ///
     /// graph.insert(Edge::new("a", "b"));
     /// assert_eq!(graph.density(), 1.0);
@@ -381,7 +381,7 @@ mod tests {
 
     #[test]
     fn insert() {
-        let mut graph = Graph::default();
+        let mut graph = Graph::new();
         let edge = Edge::new("a", "b");
 
         assert!(graph.insert(edge.clone()));
@@ -390,7 +390,7 @@ mod tests {
 
     #[test]
     fn contains() {
-        let mut graph = Graph::default();
+        let mut graph = Graph::new();
         let edge = Edge::new("a", "b");
 
         graph.insert(edge.clone());
@@ -401,7 +401,7 @@ mod tests {
 
     #[test]
     fn vertex_count() {
-        let mut graph = Graph::default();
+        let mut graph = Graph::new();
         assert_eq!(graph.vertex_count(), 0);
 
         // Verify two new vertices get added when they don't yet exist in the graph.
@@ -415,7 +415,7 @@ mod tests {
 
     #[test]
     fn edge_count() {
-        let mut graph = Graph::default();
+        let mut graph = Graph::new();
         assert_eq!(graph.edge_count(), 0);
 
         graph.insert(Edge::new("a", "b"));
@@ -424,7 +424,7 @@ mod tests {
 
     #[test]
     fn density() {
-        let mut graph = Graph::default();
+        let mut graph = Graph::new();
         assert!(graph.density().is_nan());
 
         graph.insert(Edge::new("a", "b"));
@@ -436,7 +436,7 @@ mod tests {
 
     #[test]
     fn adjacency_matrix() {
-        let mut graph = Graph::default();
+        let mut graph = Graph::new();
         assert_eq!(graph.adjacency_matrix(), dmatrix![]);
 
         graph.insert(Edge::new("a", "b"));
@@ -460,7 +460,7 @@ mod tests {
 
     #[test]
     fn degree_matrix() {
-        let mut graph = Graph::default();
+        let mut graph = Graph::new();
         assert_eq!(graph.degree_matrix(), dmatrix![]);
 
         graph.insert(Edge::new("a", "b"));
@@ -484,7 +484,7 @@ mod tests {
 
     #[test]
     fn laplacian_matrix() {
-        let mut graph = Graph::default();
+        let mut graph = Graph::new();
         assert_eq!(graph.laplacian_matrix(), dmatrix![]);
 
         graph.insert(Edge::new("a", "b"));
@@ -508,7 +508,7 @@ mod tests {
 
     #[test]
     fn degree_centrality_delta() {
-        let mut graph = Graph::default();
+        let mut graph = Graph::new();
         assert_eq!(graph.degree_centrality_delta(), 0.0);
 
         graph.insert(Edge::new("a", "b"));
@@ -520,7 +520,7 @@ mod tests {
 
     #[test]
     fn degree_centrality() {
-        let mut graph = Graph::default();
+        let mut graph = Graph::new();
         assert!(graph.degree_centrality().is_empty());
 
         // One connection, centrality measures for each vertex should be 1.
@@ -548,7 +548,7 @@ mod tests {
 
     #[test]
     fn eigenvalue_centrality() {
-        let mut graph = Graph::default();
+        let mut graph = Graph::new();
         assert!(graph.eigenvalue_centrality().is_empty());
 
         // One connection, centrality measures for each vertex should be 1.
@@ -585,7 +585,7 @@ mod tests {
 
     #[test]
     fn fiedler() {
-        let mut graph = Graph::default();
+        let mut graph = Graph::new();
 
         let (a, b, c, d) = ("a", "b", "c", "d");
 
@@ -636,7 +636,7 @@ mod tests {
 
     #[test]
     fn clear_cache_on_insert() {
-        let mut graph = Graph::default();
+        let mut graph = Graph::new();
         graph.insert(Edge::new("a", "b"));
 
         // The laplacian requires the computation of the index, the degree matrix and the adjacency
@@ -661,7 +661,7 @@ mod tests {
 
     #[test]
     fn vertices_from_edges() {
-        let mut graph = Graph::default();
+        let mut graph = Graph::new();
         assert!(graph.vertices_from_edges().is_empty());
 
         let (a, b) = ("a", "b");
@@ -677,7 +677,7 @@ mod tests {
 
     #[test]
     fn generate_index() {
-        let mut graph = Graph::default();
+        let mut graph = Graph::new();
 
         // Check for an empty graph.
         graph.generate_index();
