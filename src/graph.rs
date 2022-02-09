@@ -219,6 +219,19 @@ where
     /// Returns the difference between the highest and lowest degree centrality in the network.
     ///
     /// Returns an `f64`, though the value should be a natural number.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use spectre::graph::Graph;
+    /// use spectre::edge::Edge;
+    ///
+    /// let mut graph = Graph::new();
+    /// graph.insert(Edge::new("a", "b"));
+    /// graph.insert(Edge::new("a", "c"));
+    ///
+    /// assert_eq!(graph.degree_centrality_delta(), 1.0);
+    /// ```
     pub fn degree_centrality_delta(&mut self) -> f64 {
         let degree_matrix = self.degree_matrix();
 
