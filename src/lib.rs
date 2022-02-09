@@ -8,8 +8,8 @@
 //! matrix representations of the graph can be computed.
 //!
 //! ```rust
-//! use spectre::graph::Graph;
 //! use spectre::edge::Edge;
+//! use spectre::graph::Graph;
 //!
 //! // Construct the graph instance.
 //! let mut graph = Graph::default();
