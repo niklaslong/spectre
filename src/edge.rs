@@ -55,6 +55,26 @@ impl<T> Edge<T> {
     pub fn target(&self) -> &T {
         &self.target
     }
+
+    /// Returns whether the edge contains the given vertice.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use spectre::edge::Edge;
+    ///
+    /// let edge = Edge::new("a", "b");
+    ///
+    /// assert!(edge.contains(&"a"));
+    /// assert!(edge.contains(&"b"));
+    /// assert!(!edge.contains(&"c"));
+    /// ```
+    pub fn contains(&self, vertex: &T) -> bool
+    where
+        T: PartialEq,
+    {
+        self.source() == vertex || self.target() == vertex
+    }
 }
 
 //
@@ -113,6 +133,16 @@ mod tests {
         let edge = Edge::new(a, b);
 
         assert_eq!(edge.target(), &b);
+    }
+
+    #[test]
+    fn contains() {
+        let (a, b) = ("a", "b");
+        let edge = Edge::new(a, b);
+
+        assert!(edge.contains(&a));
+        assert!(edge.contains(&b));
+        assert!(!edge.contains(&"c"));
     }
 
     //
