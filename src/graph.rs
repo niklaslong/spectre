@@ -38,7 +38,6 @@ where
     ///
     /// # Examples
     ///
-    ///
     /// ```
     /// use spectre::graph::Graph;
     ///
@@ -62,6 +61,24 @@ where
         }
 
         is_inserted
+    }
+
+    /// Removes an edge from the set and returns whether it was present in the set.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use spectre::edge::Edge;
+    /// use spectre::graph::Graph;
+    ///
+    /// let mut graph = Graph::new();
+    /// graph.insert(Edge::new("a", "b"));
+    ///
+    /// assert_eq!(graph.remove(&Edge::new("a", "b")), true);
+    /// assert_eq!(graph.remove(&Edge::new("a", "c")), false);
+    /// ```
+    pub fn remove(&mut self, edge: &Edge<T>) -> bool {
+        self.edges.remove(edge)
     }
 
     /// Checks if the graph contains an edge.
@@ -380,12 +397,29 @@ mod tests {
     use super::*;
 
     #[test]
+    fn new() {
+        let _: Graph<()> = Graph::new();
+    }
+
+    #[test]
     fn insert() {
         let mut graph = Graph::new();
         let edge = Edge::new("a", "b");
 
         assert!(graph.insert(edge.clone()));
         assert!(!graph.insert(edge));
+    }
+
+    #[test]
+    fn remove() {
+        let edge = Edge::new("a", "b");
+        let uninserted_edge = Edge::new("a", "c");
+
+        let mut graph = Graph::new();
+        graph.insert(edge.clone());
+
+        assert!(graph.remove(&edge));
+        assert!(!graph.remove(&uninserted_edge));
     }
 
     #[test]
