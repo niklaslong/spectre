@@ -1,3 +1,5 @@
+//! A module for working with edges.
+
 use std::{
     cmp::Ordering,
     hash::{Hash, Hasher},

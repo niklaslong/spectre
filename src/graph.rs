@@ -1,3 +1,5 @@
+//! A module for working with graphs.
+
 use std::{
     collections::{BTreeMap, HashSet},
     hash::Hash,
