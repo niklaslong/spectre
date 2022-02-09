@@ -1,7 +1,7 @@
 //! Spectre is a small toolkit for analysing p2p network graphs, though it can also apply more generally
 //! to undirected graphs.
 //!
-//! ## Basic usage
+//! # Basic usage
 //!
 //! The library is centered around the [`Graph`](graph::Graph) structure which can be constructed
 //! from one or more [`Edge`](edge::Edge) instances. Once constructed, various measurements and
