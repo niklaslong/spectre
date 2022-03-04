@@ -55,7 +55,7 @@ where
     /// ```
     pub fn new() -> Self {
         Self {
-            edges: HashSet::new(),
+            edges: Default::default(),
             index: None,
             degree_matrix: None,
             adjacency_matrix: None,
