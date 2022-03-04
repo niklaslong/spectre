@@ -11,7 +11,7 @@ use nalgebra::{DMatrix, DVector, SymmetricEigen};
 use crate::edge::Edge;
 
 /// An undirected graph, made up of edges.
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug)]
 pub struct Graph<T> {
     /// The edges in the graph.
     edges: HashSet<Edge<T>>,
@@ -29,6 +29,16 @@ pub struct Graph<T> {
     laplacian_matrix: Option<DMatrix<f64>>,
 }
 
+impl<T> Default for Graph<T>
+where
+    Edge<T>: Eq + Hash,
+    T: Copy + Eq + Hash + Ord,
+{
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<T> Graph<T>
 where
     Edge<T>: Eq + Hash,
@@ -43,11 +53,14 @@ where
     ///
     /// let graph: Graph<&str> = Graph::new();
     /// ```
-    pub fn new() -> Self
-    where
-        T: Default,
-    {
-        Default::default()
+    pub fn new() -> Self {
+        Self {
+            edges: HashSet::new(),
+            index: None,
+            degree_matrix: None,
+            adjacency_matrix: None,
+            laplacian_matrix: None,
+        }
     }
 
     /// Inserts an edge into the graph.

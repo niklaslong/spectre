@@ -7,4 +7,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Manually implement `Default` for `Graph`.
+
 [unreleased]: https://github.com/niklaslong/spectre/compare/v0.2.0...HEAD
