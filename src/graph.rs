@@ -829,6 +829,56 @@ mod tests {
     }
 
     #[test]
+    fn clear_cache_on_subset_insert() {
+        let mut graph = Graph::new();
+        graph.insert(Edge::new("a", "b"));
+
+        // The laplacian requires the computation of the index, the degree matrix and the adjacency
+        // matrix.
+        graph.laplacian_matrix();
+
+        // Check the objects have been cached.
+        assert!(graph.index.is_some());
+        assert!(graph.adjacency_matrix.is_some());
+        assert!(graph.degree_matrix.is_some());
+        assert!(graph.laplacian_matrix.is_some());
+
+        // Update the graph with a subset insert.
+        graph.insert_subset("a", &["a", "b"]);
+
+        // Check the cache has been cleared.
+        assert!(graph.index.is_none());
+        assert!(graph.adjacency_matrix.is_none());
+        assert!(graph.degree_matrix.is_none());
+        assert!(graph.laplacian_matrix.is_none());
+    }
+
+    #[test]
+    fn clear_cache_on_subset_update() {
+        let mut graph = Graph::new();
+        graph.insert(Edge::new("a", "b"));
+
+        // The laplacian requires the computation of the index, the degree matrix and the adjacency
+        // matrix.
+        graph.laplacian_matrix();
+
+        // Check the objects have been cached.
+        assert!(graph.index.is_some());
+        assert!(graph.adjacency_matrix.is_some());
+        assert!(graph.degree_matrix.is_some());
+        assert!(graph.laplacian_matrix.is_some());
+
+        // Update the graph with a subset update.
+        graph.update_subset("a", &["a", "b"]);
+
+        // Check the cache has been cleared.
+        assert!(graph.index.is_none());
+        assert!(graph.adjacency_matrix.is_none());
+        assert!(graph.degree_matrix.is_none());
+        assert!(graph.laplacian_matrix.is_none());
+    }
+
+    #[test]
     fn vertices_from_edges() {
         let mut graph = Graph::new();
         assert!(graph.vertices_from_edges().is_empty());
