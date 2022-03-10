@@ -7,13 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## 0.3.0
+## [0.3.0]
 
 - Create the P2P topology example (`./examples/p2p.rs`).
 - Clear internal cache on `Graph::remove`.
 - Introduce `Graph::insert_subset` and `Graph::update_subset`.
 - Manually implement `Default` for `Graph`.
 
-[unreleased]: https://github.com/niklaslong/spectre/compare/v0.2.0...HEAD
+[unreleased]: https://github.com/niklaslong/spectre/compare/v0.3.0...HEAD
 [0.3.0]: https://github.com/niklaslong/spectre/compare/v0.2.0...v0.3.0
 
