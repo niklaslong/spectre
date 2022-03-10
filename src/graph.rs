@@ -76,6 +76,27 @@ where
         is_inserted
     }
 
+    /// Inserts a subset of `(hub, leaf)` edges into the graph.
+    pub fn insert_subset(&mut self, hub: T, leaves: &[T]) {
+        for leaf in leaves {
+            self.edges.insert(Edge::new(hub, *leaf));
+        }
+    }
+
+    /// Inserts a subset of `(hub, leaf)` edges into the graph and removes any existing edges that
+    /// contain the hub but aren't included in the new set.
+    pub fn update_subset(&mut self, hub: T, leaves: &[T]) {
+        let new_edges: HashSet<Edge<T>> = leaves.iter().map(|leaf| Edge::new(hub, *leaf)).collect();
+
+        // Remove hub-containing edges that aren't included in the new set.
+        self.edges
+            .retain(|edge| new_edges.contains(edge) || !edge.contains(&hub));
+
+        for edge in new_edges {
+            self.edges.insert(edge);
+        }
+    }
+
     /// Removes an edge from the set and returns whether it was present in the set.
     ///
     /// # Examples
@@ -482,6 +503,46 @@ mod tests {
 
         assert!(graph.insert(edge.clone()));
         assert!(!graph.insert(edge));
+    }
+
+    #[test]
+    fn insert_subset() {
+        let mut graph = Graph::new();
+
+        let (a, b, c, d) = ("a", "b", "c", "d");
+
+        graph.insert(Edge::new(a, b));
+        graph.insert(Edge::new(a, c));
+
+        let edges = vec![b, d];
+        graph.insert_subset(a, &edges);
+
+        assert!(graph.contains(&Edge::new(a, b)));
+        assert!(graph.contains(&Edge::new(a, c)));
+        assert!(graph.contains(&Edge::new(a, d)));
+
+        assert_eq!(graph.edge_count(), 3);
+    }
+
+    #[test]
+    fn update_subset() {
+        let mut graph = Graph::new();
+
+        let (a, b, c, d) = ("a", "b", "c", "d");
+
+        graph.insert(Edge::new(a, b));
+        graph.insert(Edge::new(a, c));
+        graph.insert(Edge::new(b, c));
+
+        let edges = vec![b, d];
+        graph.update_subset(a, &edges);
+
+        assert!(graph.contains(&Edge::new(a, b)));
+        assert!(!graph.contains(&Edge::new(a, c)));
+        assert!(graph.contains(&Edge::new(b, c)));
+        assert!(graph.contains(&Edge::new(a, d)));
+
+        assert_eq!(graph.edge_count(), 3);
     }
 
     #[test]
