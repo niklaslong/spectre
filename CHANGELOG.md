@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Create the P2P topology example (`./examples/p2p.rs`).
 - Clear internal cache on `Graph::remove`.
 - Introduce `Graph::insert_subset` and `Graph::update_subset`.
 - Manually implement `Default` for `Graph`.
