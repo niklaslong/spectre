@@ -89,8 +89,15 @@ where
         let new_edges: HashSet<Edge<T>> = leaves.iter().map(|leaf| Edge::new(hub, *leaf)).collect();
 
         // Remove hub-containing edges that aren't included in the new set.
+        let original_len = self.edge_count();
         self.edges
             .retain(|edge| new_edges.contains(edge) || !edge.contains(&hub));
+
+        // Make sure to clear the cache after removals as there may be no inserts.
+        // TODO: make more efficient.
+        if self.edge_count() != original_len {
+            self.clear_cache()
+        }
 
         for edge in new_edges {
             self.insert(edge);
@@ -852,7 +859,7 @@ mod tests {
         assert!(graph.laplacian_matrix.is_some());
 
         // Update the graph with a subset insert.
-        graph.insert_subset("a", &["a", "b"]);
+        graph.insert_subset("a", &["b", "d"]);
 
         // Check the cache has been cleared.
         assert!(graph.index.is_none());
@@ -877,7 +884,33 @@ mod tests {
         assert!(graph.laplacian_matrix.is_some());
 
         // Update the graph with a subset update.
-        graph.update_subset("a", &["a", "b"]);
+        graph.update_subset("a", &["b", "d"]);
+
+        // Check the cache has been cleared.
+        assert!(graph.index.is_none());
+        assert!(graph.adjacency_matrix.is_none());
+        assert!(graph.degree_matrix.is_none());
+        assert!(graph.laplacian_matrix.is_none());
+    }
+
+    #[test]
+    fn clear_cache_on_subset_update_w_only_removals() {
+        let mut graph = Graph::new();
+        graph.insert(Edge::new("a", "b"));
+        graph.insert(Edge::new("a", "c"));
+
+        // The laplacian requires the computation of the index, the degree matrix and the adjacency
+        // matrix.
+        graph.laplacian_matrix();
+
+        // Check the objects have been cached.
+        assert!(graph.index.is_some());
+        assert!(graph.adjacency_matrix.is_some());
+        assert!(graph.degree_matrix.is_some());
+        assert!(graph.laplacian_matrix.is_some());
+
+        // Update the graph with a subset update.
+        graph.update_subset("a", &["b"]);
 
         // Check the cache has been cleared.
         assert!(graph.index.is_none());
