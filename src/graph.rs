@@ -79,7 +79,7 @@ where
     /// Inserts a subset of `(hub, leaf)` edges into the graph.
     pub fn insert_subset(&mut self, hub: T, leaves: &[T]) {
         for leaf in leaves {
-            self.edges.insert(Edge::new(hub, *leaf));
+            self.insert(Edge::new(hub, *leaf));
         }
     }
 
@@ -93,7 +93,7 @@ where
             .retain(|edge| new_edges.contains(edge) || !edge.contains(&hub));
 
         for edge in new_edges {
-            self.edges.insert(edge);
+            self.insert(edge);
         }
     }
 
