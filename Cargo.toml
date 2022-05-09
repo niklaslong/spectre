@@ -14,4 +14,4 @@ keywords = ["p2p", "peer-to-peer", "networking"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-nalgebra = "0.30.1"
+nalgebra = "0.31"
