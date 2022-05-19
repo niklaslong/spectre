@@ -1,7 +1,7 @@
 //! A module for working with graphs.
 
 use std::{
-    collections::{BTreeMap, HashSet},
+    collections::{BTreeMap, HashMap, HashSet},
     hash::Hash,
     ops::Sub,
 };
@@ -339,7 +339,7 @@ where
     }
 
     /// Returns a mapping of the edges to their degree centrality (number of connections) in the graph.
-    pub fn degree_centrality(&mut self) -> BTreeMap<T, u32> {
+    pub fn degree_centrality(&mut self) -> HashMap<T, u32> {
         let degree_matrix = self.degree_matrix();
 
         // Safety: the previous call guarantees the index has been generated and stored.
@@ -354,13 +354,13 @@ where
 
     /// Returns a mapping of the edges to their eigenvalue centrality (the relative importance of the
     /// edge) in the graph.
-    pub fn eigenvalue_centrality(&mut self) -> BTreeMap<T, f64> {
+    pub fn eigenvalue_centrality(&mut self) -> HashMap<T, f64> {
         let adjacency_matrix = self.adjacency_matrix();
 
         // Early return if the matrix is empty, the rest of the computation requires a matrix with
         // at least a dim of 1x1.
         if adjacency_matrix.is_empty() {
-            return BTreeMap::new();
+            return HashMap::new();
         }
 
         // Compute the eigenvectors and corresponding eigenvalues and sort in descending order.
@@ -385,13 +385,13 @@ where
 
     /// Returns the algebraic connectivity (Fiedler eigenvalue) of the graph and a mapping of the
     /// edges to their Fiedler value (their associated component in the Fiedler eigenvector).
-    pub fn fiedler(&mut self) -> (f64, BTreeMap<T, f64>) {
+    pub fn fiedler(&mut self) -> (f64, HashMap<T, f64>) {
         let laplacian_matrix = self.laplacian_matrix();
 
         // Early return if the matrix is empty, the rest of the computation requires a matrix with
         // at least a dim of 1x1.
         if laplacian_matrix.is_empty() {
-            return (0.0, BTreeMap::new());
+            return (0.0, HashMap::new());
         }
 
         // Compute the eigenvectors and corresponding eigenvalues and sort in ascending order.
