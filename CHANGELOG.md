@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Update `nalgebra` to `0.31`.
+- Change `BTreeMap` to `HashMap` for centrality measurement collections.
 
 ## [0.3.0]
 
