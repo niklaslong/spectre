@@ -338,7 +338,7 @@ where
         max - min
     }
 
-    /// Returns a mapping of the edges to their degree centrality (number of connections) in the graph.
+    /// Returns a mapping of vertices to their degree centrality (number of connections) in the graph.
     pub fn degree_centrality(&mut self) -> HashMap<T, u32> {
         let degree_matrix = self.degree_matrix();
 
@@ -352,8 +352,8 @@ where
             .collect()
     }
 
-    /// Returns a mapping of the edges to their eigenvalue centrality (the relative importance of the
-    /// edge) in the graph.
+    /// Returns a mapping of vertices to their eigenvalue centrality (the relative importance of
+    /// the vertex) in the graph.
     pub fn eigenvalue_centrality(&mut self) -> HashMap<T, f64> {
         let adjacency_matrix = self.adjacency_matrix();
 
@@ -384,7 +384,7 @@ where
     }
 
     /// Returns the algebraic connectivity (Fiedler eigenvalue) of the graph and a mapping of the
-    /// edges to their Fiedler value (their associated component in the Fiedler eigenvector).
+    /// vertices to their Fiedler value (their associated component in the Fiedler eigenvector).
     pub fn fiedler(&mut self) -> (f64, HashMap<T, f64>) {
         let laplacian_matrix = self.laplacian_matrix();
 
