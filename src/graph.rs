@@ -1268,20 +1268,4 @@ mod tests {
         assert_eq!(agraph.len(), closeness.len());
     }
 
-    #[test]
-    fn imported_sample_4914() {
-        let graph: Graph<usize> = Graph::new();
-        let agraph = graph.load_agraph("testdata/agraph-4914.txt");
-        assert_eq!(agraph.len(), 4914);
-        // this test lasts 10-11 minutes; for the time being, we skip it
-        // let graph: Graph<usize> = Graph::new();
-        // let start = Instant::now();
-        // let (betweenness, closeness) = graph.compute_betweenness_and_closeness(&agraph);
-        // let elapsed = start.elapsed();
-        // println!("elapsed for 4914 nodes: {:?}", elapsed);
-        // assert!(elapsed.as_secs() < 900);
-        // assert_eq!(agraph.len(), betweenness.len());
-        // assert_eq!(agraph.len(), closeness.len());
-    }
-
 }
