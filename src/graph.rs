@@ -474,6 +474,12 @@ where
         self.index = Some(index);
     }
 
+    // creates an AGraph from a list of 'good' addresses and
+    // the Edges array.
+    // For each edge, if both nodes are in the good list,
+    // a connection is created for each node.
+    // The AGraph has a equivalent information as the edges,
+    // but is just a node-centric view (required for closeness)
     pub fn create_agraph(&self, addresses: &Vec<T>) -> AGraph {
         let num_nodes = addresses.len();
         let mut agraph: AGraph = AGraph::new();
@@ -507,6 +513,11 @@ where
 
     }
 
+    // Create an AGraph from a json file.
+    // It will begin like this:
+    //   {"agraph":[[2630,3217,1608,1035,...
+    // and end like this:
+    //   ...2316,1068,1238,704,2013]]}
     pub fn load_agraph(&self, crawler_report_path: &str) -> AGraph {
         let jstring = fs::read_to_string(crawler_report_path).unwrap();
         let agraph_sample: AGraphSample = serde_json::from_str(&jstring).unwrap();
@@ -514,6 +525,22 @@ where
         agraph
     }
 
+    // This method returns the closeness and betweenness for a given AGraph.
+    //
+    // Closeness:
+    //   for each node
+    //     for all other nodes
+    //       find all shortest paths to that other node
+    //         accumlate all path lens
+    //         accumulate number of paths.
+    //   compute average path length
+    //
+    //
+    //  Betweenness:
+    //    When a shortest path is found
+    //      for all nodes in-between (i.e., not an end point)
+    //        increment their betweenness value
+    //
     pub fn compute_betweenness_and_closeness (&self, agraph: &AGraph) ->  (Vec<u32>, Vec<f64>) {
         let num_nodes = agraph.len();
 
@@ -1157,7 +1184,7 @@ mod tests {
 
         let total_path_length = [28, 11, 13, 14, 19, 14, 19];
         let num_paths = [10, 7, 7, 7, 7, 7, 7];
-        let mut expected_closeness: [f64; 7] = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0];
+        let mut expected_closeness: [f64; 7] = [0.0; 7];
         for i in 0..7 {
             expected_closeness[i] = total_path_length[i] as f64 / num_paths[i] as f64;
         }
@@ -1184,7 +1211,7 @@ mod tests {
 
         let total_path_length = [7, 13, 13, 13, 13, 13, 13, 13];
         let num_paths = [7, 7, 7, 7, 7, 7, 7, 7];
-        let mut expected_closeness: [f64; 8] = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0];
+        let mut expected_closeness: [f64; 8] = [0.0; 8];
         for i in 0..8 {
             expected_closeness[i] = total_path_length[i] as f64 / num_paths[i] as f64;
         }
@@ -1212,7 +1239,7 @@ mod tests {
 
         let total_path_length = [13, 13, 13, 13, 13, 13, 13, 7];
         let num_paths = [7, 7, 7, 7, 7, 7, 7, 7];
-        let mut expected_closeness: [f64; 8] = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0];
+        let mut expected_closeness: [f64; 8] = [0.0; 8];
         for i in 0..8 {
             expected_closeness[i] = total_path_length[i] as f64 / num_paths[i] as f64;
         }
@@ -1245,7 +1272,7 @@ mod tests {
 
         let total_path_length = [3, 3, 3, 3, 4, 7, 7, 7, 7];
         let num_paths = [3, 3, 3, 3, 4, 4, 4, 4, 4];
-        let mut expected_closeness: [f64; 9] = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0];
+        let mut expected_closeness: [f64; 9] = [0.0; 9];
         for i in 0..9 {
             expected_closeness[i] = total_path_length[i] as f64 / num_paths[i] as f64;
         }
@@ -1256,7 +1283,7 @@ mod tests {
     #[test]
     fn imported_sample_3226() {
         let graph: Graph<usize> = Graph::new();
-        let agraph = graph.load_agraph("testdata/agraph-3226.txt");
+        let agraph = graph.load_agraph("testdata/agraph-3226.json");
         assert_eq!(agraph.len(), 3226);
         let graph: Graph<usize> = Graph::new();
         let start = Instant::now();
