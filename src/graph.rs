@@ -3,7 +3,7 @@
 use std::{
     collections::{BTreeMap, HashMap, HashSet},
     hash::Hash,
-    ops::Sub
+    ops::Sub,
 };
 
 use nalgebra::{DMatrix, DVector, SymmetricEigen};
@@ -12,7 +12,6 @@ use crate::edge::Edge;
 
 pub type Vertex = Vec<usize>;
 pub type AGraph = Vec<Vec<usize>>;
-
 
 /// An undirected graph, made up of edges.
 #[derive(Clone, Debug)]
@@ -32,7 +31,6 @@ pub struct Graph<T> {
     /// Cache the laplacian matrix when possible.
     laplacian_matrix: Option<DMatrix<f64>>,
 }
-
 
 impl<T> Default for Graph<T>
 where
@@ -490,25 +488,23 @@ where
             let source = *edge.source();
             let target = *edge.target();
 
-            let src_result = addresses.iter().position(|&r| r == source);
-            if src_result == None {
+            let source_result = addresses.iter().position(|&r| r == source);
+            if source_result.is_none() {
                 continue;
             }
 
-            let tgt_result = addresses.iter().position(|&r| r == target);
-            if tgt_result == None {
+            let target_result = addresses.iter().position(|&r| r == target);
+            if target_result.is_none() {
                 continue;
             }
 
-            let src_index = src_result.unwrap();
-            let tgt_index = tgt_result.unwrap();
-            agraph[src_index].push(tgt_index);
-            agraph[tgt_index].push(src_index);
+            let source_index = source_result.unwrap();
+            let target_index = target_result.unwrap();
+            agraph[source_index].push(target_index);
+            agraph[target_index].push(source_index);
         }
         agraph
-
     }
-
 
     // This method returns the closeness and betweenness for a given AGraph.
     //
@@ -526,24 +522,24 @@ where
     //      for all nodes in-between (i.e., not an end point)
     //        increment their betweenness value
     //
-    pub fn compute_betweenness_and_closeness (&self, agraph: &AGraph) ->  (Vec<u32>, Vec<f64>) {
+    pub fn compute_betweenness_and_closeness(&self, agraph: &AGraph) -> (Vec<u32>, Vec<f64>) {
         let num_nodes = agraph.len();
 
-        let mut betweenness: Vec<u32> = vec!(0; num_nodes);
-        let mut closeness: Vec<f64> = vec!(0.0; num_nodes);
-        let mut total_path_length: Vec<u32> = vec!(0; num_nodes);
-        let mut num_paths: Vec<u32> = vec!(0; num_nodes);
+        let mut betweenness: Vec<u32> = vec![0; num_nodes];
+        let mut closeness: Vec<f64> = vec![0.0; num_nodes];
+        let mut total_path_length: Vec<u32> = vec![0; num_nodes];
+        let mut num_paths: Vec<u32> = vec![0; num_nodes];
 
-        for i in 0..num_nodes-1 {
-            let mut visited: Vec<bool> = vec!(false; num_nodes);
-            let mut found_or_not: Vec<bool> = vec!(false; num_nodes);
+        for i in 0..num_nodes - 1 {
+            let mut visited: Vec<bool> = vec![false; num_nodes];
+            let mut found_or_not: Vec<bool> = vec![false; num_nodes];
             let mut search_list: Vec<usize> = Vec::new();
 
             // mark node i and all those before i as visited
-            for j in 0..i+1 {
+            for j in 0..i + 1 {
                 found_or_not[j] = true;
             }
-            for j in i+1..num_nodes {
+            for j in i + 1..num_nodes {
                 search_list.push(j);
                 found_or_not[j] = false;
             }
@@ -617,9 +613,7 @@ where
         }
 
         (betweenness, closeness)
-
     }
-
 }
 
 //
@@ -663,17 +657,14 @@ fn sorted_eigenvalue_vector_pairs(
 #[cfg(test)]
 mod tests {
     use nalgebra::dmatrix;
-    use std:: {
-        time::Instant,
-        fs
-    };
     use serde::Deserialize;
+    use std::{fs, time::Instant};
 
     use super::*;
 
     #[derive(Default, Clone, Deserialize)]
     pub struct AGraphSample {
-       pub agraph: AGraph
+        pub agraph: AGraph,
     }
 
     #[test]
@@ -1274,7 +1265,6 @@ mod tests {
         assert_eq!(closeness, expected_closeness);
     }
 
-
     // Helper function to create an AGraph from a json file.
     // The file will begin like this:
     //   {"agraph":[[2630,3217,1608,1035,...
@@ -1300,5 +1290,4 @@ mod tests {
         assert_eq!(agraph.len(), betweenness.len());
         assert_eq!(agraph.len(), closeness.len());
     }
-
 }
