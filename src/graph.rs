@@ -530,21 +530,25 @@ where
         let mut total_path_length: Vec<u32> = vec![0; num_nodes];
         let mut num_paths: Vec<u32> = vec![0; num_nodes];
 
+        // the last searchable pair is:
+        //     i = num_nodes - 2
+        //     j = num_nodes - 1
         for i in 0..num_nodes - 1 {
             let mut visited: Vec<bool> = vec![false; num_nodes];
-            let mut found_or_not: Vec<bool> = vec![false; num_nodes];
+            let mut search_state: Vec<bool> = vec![false; num_nodes];
             let mut search_list: Vec<usize> = Vec::new();
 
-            // mark node i and all those before i as visited
-            for j in 0..i + 1 {
-                found_or_not[j] = true;
+            // mark node i and all those before i as searched, this sets
+            // up the search space for the next iterations of the loop.
+            for j in 0..=i {
+                search_state[j] = true;
             }
             for j in i + 1..num_nodes {
                 search_list.push(j);
-                found_or_not[j] = false;
+                search_state[j] = false;
             }
 
-            while search_list.len() > 0 {
+            while !search_list.is_empty() {
                 // 0. OUR MAIN SEARCH LOOP:  I and J
                 // 1. we search for path between i and j.  We're done when we find j
                 // 2. any short paths we find along the way, they get handled and removed from search list
@@ -560,38 +564,52 @@ where
                 queue_list.push(i);
 
                 while !done {
-                    let mut this_round_found: Vec<usize> = Vec::new();
-                    let mut queue_me = Vec::new();
+                    // for all shortest paths we find (and not necessily the i-j path we
+                    // are currently searching for), we store all of them here. And for one
+                    // node (i-j, or i-p, i-q...) there may be muliple paths that are shortest
+                    // and have same end points.
+                    let mut found_for_this_pathlen: Vec<usize> = Vec::new();
+                    // this list store the next unvisited node, to be
+                    // used as a starting node in the next round
+                    let mut queued_for_next_round = Vec::new();
                     let mut touched: bool = false;
                     for q in queue_list.as_slice() {
                         let vertex = &agraph[*q];
                         for x in vertex {
-                            // We collect all shortest paths for this length, as there may be multiple paths
+                            // Check if we've been here before
                             if !visited[*x] {
+                                // if not, we're still not necessarily disconnected for this i-j instance
                                 touched = true;
-                                queue_me.push(*x);
-                                if !found_or_not[*x] {
-                                    this_round_found.push(*x);
+                                // one of our starting nodes for next round
+                                queued_for_next_round.push(*x);
+                                if !search_state[*x] {
+                                    // if this i-x is to be searched, then we're done for that pair
+                                    // but we queue it first, in case other paths for same i-q are found
+                                    found_for_this_pathlen.push(*x);
                                     if pathlen > 1 {
-                                        betweenness[*q] = betweenness[*q] + 1;
+                                        betweenness[*q] += 1;
                                     }
                                 }
                             }
                         }
                     }
 
+                    // prep for next round, start fresh queue list
                     queue_list.clear();
-                    for x in queue_me {
+                    // load up the queue list, marked as visited
+                    for x in queued_for_next_round {
                         queue_list.push(x);
                         visited[x] = true;
                     }
-                    for f in this_round_found {
-                        num_paths[f] = num_paths[f] + 1;
-                        total_path_length[f] = total_path_length[f] + pathlen;
-                        num_paths[i] = num_paths[i] + 1;
-                        total_path_length[i] = total_path_length[i] + pathlen;
+                    // now we do bookkeeping for any found
+                    // shortest paths.
+                    for f in found_for_this_pathlen {
+                        num_paths[f] += 1;
+                        total_path_length[f] += pathlen;
+                        num_paths[i] += 1;
+                        total_path_length[i] += pathlen;
                         search_list.retain(|&x| x != f);
-                        found_or_not[f] = true;
+                        search_state[f] = true;
                         if f == j {
                             done = true;
                         }
@@ -599,11 +617,11 @@ where
                     // If no connection exists, stop searching for it.
                     if !touched {
                         search_list.retain(|&x| x != j);
-                        found_or_not[j] = true;
+                        search_state[j] = true;
                         done = true
                     }
 
-                    pathlen = pathlen + 1;
+                    pathlen += 1;
                 }
             }
         }
@@ -1151,7 +1169,7 @@ mod tests {
     }
 
     #[test]
-    fn randomish_graph() {
+    fn closeness_randomish_graph() {
         let (s0, s1, s2, s3, s4, s5, s6) = ("0", "1", "2", "3", "4", "5", "6");
         let addresses = vec!["0", "1", "2", "3", "4", "5", "6"];
         let mut graph: Graph<&str> = Graph::new();
@@ -1178,7 +1196,7 @@ mod tests {
     }
 
     #[test]
-    fn star_graph_a() {
+    fn closeness_star_graph_a() {
         // 7-pointed star, 8 nodes
         // center is 0
         let (s0, s1, s2, s3, s4, s5, s6, s7) = ("0", "1", "2", "3", "4", "5", "6", "7");
@@ -1205,7 +1223,7 @@ mod tests {
     }
 
     #[test]
-    fn star_graph_b() {
+    fn closeness_star_graph_b() {
         // 7-pointed star, 8 nodes
         // center is 7
         let (s0, s1, s2, s3, s4, s5, s6, s7) = ("0", "1", "2", "3", "4", "5", "6", "7");
@@ -1233,7 +1251,7 @@ mod tests {
     }
 
     #[test]
-    fn disconnected_graph() {
+    fn closeness_disconnected_graph() {
         // 9 vertices
         // 4 verts, 0-3: square, all points connected
         // 5 verts, 4-8: star, with v4 in the center
@@ -1278,7 +1296,8 @@ mod tests {
     }
 
     #[test]
-    fn imported_sample_3226() {
+    #[ignore = "takes a while to run"]
+    fn closeness_imported_sample_3226() {
         let agraph = load_agraph("testdata/agraph-3226.json");
         assert_eq!(agraph.len(), 3226);
         let graph: Graph<usize> = Graph::new();
