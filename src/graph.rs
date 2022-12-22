@@ -68,6 +68,10 @@ where
         }
     }
 
+    pub fn edges(&mut self) -> &HashSet<Edge<T>> {
+        &self.edges
+    }
+
     /// Inserts an edge into the graph.
     pub fn insert(&mut self, edge: Edge<T>) -> bool {
         let is_inserted = self.edges.insert(edge);
