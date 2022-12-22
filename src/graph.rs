@@ -682,9 +682,10 @@ fn sorted_eigenvalue_vector_pairs(
 
 #[cfg(test)]
 mod tests {
+    use std::{fs, time::Instant};
+
     use nalgebra::dmatrix;
     use serde::Deserialize;
-    use std::{fs, time::Instant};
 
     use super::*;
 
