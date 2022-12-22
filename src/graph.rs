@@ -10,7 +10,9 @@ use nalgebra::{DMatrix, DVector, SymmetricEigen};
 
 use crate::edge::Edge;
 
+/// A vertex made up of connected indices
 pub type Vertex = Vec<usize>;
+/// An undirected graph, made up of vertices
 pub type AGraph = Vec<Vec<usize>>;
 
 /// An undirected graph, made up of edges.
@@ -506,26 +508,25 @@ where
         agraph
     }
 
-    // This method returns the closeness and betweenness for a given AGraph.
-    //
-    // Closeness:
-    //   for each node
-    //     for all other nodes
-    //       find all shortest paths to that other node
-    //         accumlate all path lens
-    //         accumulate number of paths.
-    //   compute average path length
-    //
-    //
-    //  Betweenness:
-    //    When a shortest path is found
-    //      for all nodes in-between (i.e., not an end point)
-    //        increment their betweenness value
-    //
-    pub fn compute_betweenness_and_closeness(&self, agraph: &AGraph) -> (Vec<u32>, Vec<f64>) {
+    /// This method returns the closeness and betweenness for a given AGraph.
+    ///
+    /// Closeness:
+    ///   for each node
+    ///     for all other nodes
+    ///       find all shortest paths to that other node
+    ///         accumlate all path lens
+    ///         accumulate number of paths.
+    ///   compute average path length
+    ///
+    ///  Betweenness:
+    ///    When a shortest path is found
+    ///      for all nodes in-between (i.e., not an end point)
+    ///        increment their betweenness value
+    ///
+    pub fn compute_betweenness_and_closeness(&self, agraph: &AGraph) -> (Vec<f64>, Vec<f64>) {
         let num_nodes = agraph.len();
 
-        let mut betweenness: Vec<u32> = vec![0; num_nodes];
+        let mut betweenness_count: Vec<u32> = vec![0; num_nodes];
         let mut closeness: Vec<f64> = vec![0.0; num_nodes];
         let mut total_path_length: Vec<u32> = vec![0; num_nodes];
         let mut num_paths: Vec<u32> = vec![0; num_nodes];
@@ -587,7 +588,7 @@ where
                                     // but we queue it first, in case other paths for same i-q are found
                                     found_for_this_pathlen.push(*x);
                                     if pathlen > 1 {
-                                        betweenness[*q] += 1;
+                                        betweenness_count[*q] += 1;
                                     }
                                 }
                             }
@@ -626,8 +627,17 @@ where
             }
         }
 
+        // compute the total number of shortest paths found, so
+        // we can normalize the betweenness values.
+        let mut total_num_paths: u32 = 0;
+        for i in 0..num_nodes {
+            total_num_paths += num_paths[i];
+        }
+
+        let mut betweenness: Vec<f64> = vec![0.0; num_nodes];
         for i in 0..num_nodes {
             closeness[i] = total_path_length[i] as f64 / num_paths[i] as f64;
+            betweenness[i] = betweenness_count[i] as f64 / total_num_paths as f64;
         }
 
         (betweenness, closeness)
@@ -1184,14 +1194,17 @@ mod tests {
         graph.insert(Edge::new(s1, s3));
         let agraph = graph.create_agraph(&addresses);
         let (betweenness, closeness) = graph.compute_betweenness_and_closeness(&agraph);
-
         let total_path_length = [28, 11, 13, 14, 19, 14, 19];
         let num_paths = [10, 7, 7, 7, 7, 7, 7];
+        let total_num_paths: i32 = 52;
         let mut expected_closeness: [f64; 7] = [0.0; 7];
+        let mut expected_betweenness: [f64; 7] = [0.0; 7];
+        let betweenness_count = [1, 6, 10, 1, 0, 1, 0];
         for i in 0..7 {
             expected_closeness[i] = total_path_length[i] as f64 / num_paths[i] as f64;
+            expected_betweenness[i] = betweenness_count[i] as f64 / total_num_paths as f64;
         }
-        assert_eq!(betweenness, [1, 6, 10, 1, 0, 1, 0]);
+        assert_eq!(betweenness, expected_betweenness);
         assert_eq!(closeness, expected_closeness);
     }
 
@@ -1211,14 +1224,17 @@ mod tests {
         graph.insert(Edge::new(s0, s7));
         let agraph = graph.create_agraph(&addresses);
         let (betweenness, closeness) = graph.compute_betweenness_and_closeness(&agraph);
-
         let total_path_length = [7, 13, 13, 13, 13, 13, 13, 13];
         let num_paths = [7, 7, 7, 7, 7, 7, 7, 7];
+        let total_num_paths: i32 = 56;
         let mut expected_closeness: [f64; 8] = [0.0; 8];
+        let mut expected_betweenness: [f64; 8] = [0.0; 8];
+        let betweenness_count = [21, 0, 0, 0, 0, 0, 0, 0];
         for i in 0..8 {
             expected_closeness[i] = total_path_length[i] as f64 / num_paths[i] as f64;
+            expected_betweenness[i] = betweenness_count[i] as f64 / total_num_paths as f64;
         }
-        assert_eq!(betweenness, [21, 0, 0, 0, 0, 0, 0, 0]);
+        assert_eq!(betweenness, expected_betweenness);
         assert_eq!(closeness, expected_closeness);
     }
 
@@ -1239,14 +1255,17 @@ mod tests {
 
         let agraph = graph.create_agraph(&addresses);
         let (betweenness, closeness) = graph.compute_betweenness_and_closeness(&agraph);
-
         let total_path_length = [13, 13, 13, 13, 13, 13, 13, 7];
         let num_paths = [7, 7, 7, 7, 7, 7, 7, 7];
+        let total_num_paths: i32 = 56;
         let mut expected_closeness: [f64; 8] = [0.0; 8];
+        let mut expected_betweenness: [f64; 8] = [0.0; 8];
+        let betweenness_count = [0, 0, 0, 0, 0, 0, 0, 21];
         for i in 0..8 {
             expected_closeness[i] = total_path_length[i] as f64 / num_paths[i] as f64;
+            expected_betweenness[i] = betweenness_count[i] as f64 / total_num_paths as f64;
         }
-        assert_eq!(betweenness, [0, 0, 0, 0, 0, 0, 0, 21]);
+        assert_eq!(betweenness, expected_betweenness);
         assert_eq!(closeness, expected_closeness);
     }
 
@@ -1264,7 +1283,6 @@ mod tests {
         graph.insert(Edge::new(s1, s2));
         graph.insert(Edge::new(s1, s3));
         graph.insert(Edge::new(s2, s3));
-
         graph.insert(Edge::new(s4, s5));
         graph.insert(Edge::new(s4, s6));
         graph.insert(Edge::new(s4, s7));
@@ -1272,14 +1290,17 @@ mod tests {
 
         let agraph = graph.create_agraph(&addresses);
         let (betweenness, closeness) = graph.compute_betweenness_and_closeness(&agraph);
-
         let total_path_length = [3, 3, 3, 3, 4, 7, 7, 7, 7];
         let num_paths = [3, 3, 3, 3, 4, 4, 4, 4, 4];
+        let total_num_paths: i32 = 32;
         let mut expected_closeness: [f64; 9] = [0.0; 9];
+        let mut expected_betweenness: [f64; 9] = [0.0; 9];
+        let betweenness_count = [0, 0, 0, 0, 6, 0, 0, 0, 0];
         for i in 0..9 {
             expected_closeness[i] = total_path_length[i] as f64 / num_paths[i] as f64;
+            expected_betweenness[i] = betweenness_count[i] as f64 / total_num_paths as f64;
         }
-        assert_eq!(betweenness, [0, 0, 0, 0, 6, 0, 0, 0, 0]);
+        assert_eq!(betweenness, expected_betweenness);
         assert_eq!(closeness, expected_closeness);
     }
 
