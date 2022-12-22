@@ -470,12 +470,15 @@ where
         self.index = Some(index);
     }
 
-    // creates an AGraph from a list of 'good' addresses and
-    // the Edges array.
-    // For each edge, if both nodes are in the good list,
-    // a connection is created for each node.
-    // The AGraph has a equivalent information as the edges,
-    // but is just a node-centric view (required for closeness)
+    /// Creates an AGraph from a list of addresses (which may
+    /// be filtered) and the edges array.
+    ///
+    /// For each edge, if both nodes are in the address list,
+    /// a connection is created for each node.
+    ///
+    /// The AGraph is a node-centric view (required for closeness)
+    /// of the same information in the edges, while also possibly
+    /// handling only a subset of all nodes.
     pub fn create_agraph(&self, addresses: &Vec<T>) -> AGraph {
         let num_nodes = addresses.len();
         let mut agraph: AGraph = AGraph::new();
@@ -510,19 +513,13 @@ where
 
     /// This method returns the closeness and betweenness for a given AGraph.
     ///
-    /// Closeness:
-    ///   for each node
-    ///     for all other nodes
-    ///       find all shortest paths to that other node
-    ///         accumlate all path lens
-    ///         accumulate number of paths.
-    ///     compute average path length
+    /// Closeness: for each node, find all shortest paths to all other nodes.
+    /// Accumulate all path lengths, accumulate number of paths, and then compute
+    /// average path length.
     ///
-    ///  Betweenness:
-    ///    When a shortest path is found
-    ///      for all nodes in-between (i.e., not an end point)
-    ///        increment their betweenness value
-    ///    Normalize the counts by dividing by the number of shortest paths found
+    /// Betweenness: When a shortest path is found, for all nodes
+    /// in-between (i.e., not an end point), increment their betweenness value.
+    /// Normalize the counts by dividing by the number of shortest paths found
     ///
     pub fn compute_betweenness_and_closeness(&self, agraph: &AGraph) -> (Vec<f64>, Vec<f64>) {
         let num_nodes = agraph.len();
