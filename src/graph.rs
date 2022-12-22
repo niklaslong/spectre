@@ -3,10 +3,8 @@
 use std::{
     collections::{BTreeMap, HashMap, HashSet},
     hash::Hash,
-    ops::Sub,
-    fs
+    ops::Sub
 };
-use serde::Deserialize;
 
 use nalgebra::{DMatrix, DVector, SymmetricEigen};
 
@@ -14,12 +12,6 @@ use crate::edge::Edge;
 
 pub type Vertex = Vec<usize>;
 pub type AGraph = Vec<Vec<usize>>;
-
-#[derive(Default, Clone, Deserialize)]
-pub struct AGraphSample {
-    pub agraph: AGraph
-}
-
 
 
 /// An undirected graph, made up of edges.
@@ -513,17 +505,6 @@ where
 
     }
 
-    // Create an AGraph from a json file.
-    // It will begin like this:
-    //   {"agraph":[[2630,3217,1608,1035,...
-    // and end like this:
-    //   ...2316,1068,1238,704,2013]]}
-    pub fn load_agraph(&self, crawler_report_path: &str) -> AGraph {
-        let jstring = fs::read_to_string(crawler_report_path).unwrap();
-        let agraph_sample: AGraphSample = serde_json::from_str(&jstring).unwrap();
-        let agraph = agraph_sample.agraph;
-        agraph
-    }
 
     // This method returns the closeness and betweenness for a given AGraph.
     //
@@ -678,9 +659,18 @@ fn sorted_eigenvalue_vector_pairs(
 #[cfg(test)]
 mod tests {
     use nalgebra::dmatrix;
-    use std::time::Instant;
+    use std:: {
+        time::Instant,
+        fs
+    };
+    use serde::Deserialize;
 
     use super::*;
+
+    #[derive(Default, Clone, Deserialize)]
+    pub struct AGraphSample {
+       pub agraph: AGraph
+    }
 
     #[test]
     fn new() {
@@ -1280,10 +1270,22 @@ mod tests {
         assert_eq!(closeness, expected_closeness);
     }
 
+
+    // Helper function to create an AGraph from a json file.
+    // The file will begin like this:
+    //   {"agraph":[[2630,3217,1608,1035,...
+    // and end like this:
+    //   ...2316,1068,1238,704,2013]]}
+    pub fn load_agraph(filepath: &str) -> AGraph {
+        let jstring = fs::read_to_string(filepath).unwrap();
+        let agraph_sample: AGraphSample = serde_json::from_str(&jstring).unwrap();
+        let agraph = agraph_sample.agraph;
+        agraph
+    }
+
     #[test]
     fn imported_sample_3226() {
-        let graph: Graph<usize> = Graph::new();
-        let agraph = graph.load_agraph("testdata/agraph-3226.json");
+        let agraph = load_agraph("testdata/agraph-3226.json");
         assert_eq!(agraph.len(), 3226);
         let graph: Graph<usize> = Graph::new();
         let start = Instant::now();
