@@ -516,12 +516,13 @@ where
     ///       find all shortest paths to that other node
     ///         accumlate all path lens
     ///         accumulate number of paths.
-    ///   compute average path length
+    ///     compute average path length
     ///
     ///  Betweenness:
     ///    When a shortest path is found
     ///      for all nodes in-between (i.e., not an end point)
     ///        increment their betweenness value
+    ///    Normalize the counts by dividing by the number of shortest paths found
     ///
     pub fn compute_betweenness_and_closeness(&self, agraph: &AGraph) -> (Vec<f64>, Vec<f64>) {
         let num_nodes = agraph.len();
