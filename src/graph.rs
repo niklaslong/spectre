@@ -539,12 +539,17 @@ where
 
             // mark node i and all those before i as searched, this sets
             // up the search space for the next iterations of the loop.
-            for j in 0..=i {
-                search_state[j] = true;
+            for search_state in search_state.iter_mut().take(i + 1) {
+                *search_state = true;
             }
-            for j in i + 1..num_nodes {
+            for (j, search_state) in search_state
+                .iter_mut()
+                .enumerate()
+                .take(num_nodes)
+                .skip(i + 1)
+            {
                 search_list.push(j);
-                search_state[j] = false;
+                *search_state = false;
             }
 
             while !search_list.is_empty() {
@@ -555,8 +560,8 @@ where
                 // 4. we also determine if no path exists (disconnected graph case)
                 let mut done = false;
                 let j = search_list[0];
-                for x in 0..num_nodes {
-                    visited[x] = x == i;
+                for (x, visited) in visited.iter_mut().enumerate().take(num_nodes) {
+                    *visited = x == i;
                 }
                 let mut pathlen: u32 = 1;
                 let mut queue_list = Vec::new();
@@ -628,8 +633,8 @@ where
         // compute the total number of shortest paths found, so
         // we can normalize the betweenness values.
         let mut total_num_paths: u32 = 0;
-        for i in 0..num_nodes {
-            total_num_paths += num_paths[i];
+        for num_paths in num_paths.iter().take(num_nodes) {
+            total_num_paths += num_paths;
         }
 
         let mut betweenness: Vec<f64> = vec![0.0; num_nodes];
