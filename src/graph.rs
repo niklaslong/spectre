@@ -1316,8 +1316,7 @@ mod tests {
     pub fn load_agraph(filepath: &str) -> AGraph {
         let jstring = fs::read_to_string(filepath).unwrap();
         let agraph_sample: AGraphSample = serde_json::from_str(&jstring).unwrap();
-        let agraph = agraph_sample.agraph;
-        agraph
+        agraph_sample.agraph
     }
 
     #[test]
@@ -1329,7 +1328,7 @@ mod tests {
         let start = Instant::now();
         let (betweenness, closeness) = graph.compute_betweenness_and_closeness(&agraph);
         let elapsed = start.elapsed();
-        println!("elapsed for 3226 nodes: {:?}", elapsed);
+        println!("elapsed for 3226 nodes: {elapsed:?}");
         assert!(elapsed.as_secs() < 45);
         assert_eq!(agraph.len(), betweenness.len());
         assert_eq!(agraph.len(), closeness.len());

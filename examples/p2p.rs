@@ -50,7 +50,7 @@ fn main() {
         nodes.push(node)
     }
 
-    println!("\nCrawling network with {} nodes...", N);
+    println!("\nCrawling network with {N} nodes...");
 
     // Simulate crawling the network and use each node's peers to create the graph.
     let mut graph = Graph::new();
