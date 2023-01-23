@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0]
+
+### Added
+
+- Added `AGraph` and `Vertex` types.
+- Added `Graph::compute_betweenness_and_closeness` based on the `AGraph`.
+
 ## [0.4.0]
 
 ### Changed
@@ -29,7 +36,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Clear internal cache on `Graph::remove`.
 
-[unreleased]: https://github.com/niklaslong/spectre/compare/v0.4.0...HEAD
+[unreleased]: https://github.com/niklaslong/spectre/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/niklaslong/spectre/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/niklaslong/spectre/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/niklaslong/spectre/compare/v0.2.0...v0.3.0
 
