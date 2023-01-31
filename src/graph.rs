@@ -424,6 +424,11 @@ where
         (*algebraic_connectivity, fiedler_values_indexed)
     }
 
+    /// Return index of specified value or None if value is not found
+    pub fn get_index(&self, value: T) -> Option<usize> {
+        self.index.as_ref().unwrap().get(&value).cloned()
+    }
+
     //
     // Private
     //
