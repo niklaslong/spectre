@@ -510,8 +510,10 @@ where
 
             // Remember where we've been so we don't accidentally backtrack.
             for n in neighbours {
-                visited[n] = true;
-                next_layer.push_back(n);
+                if n != target {
+                    visited[n] = true;
+                    next_layer.push_back(n);
+                }
 
                 // Fetch the paths that end in the current search source (m).
                 // SAFETY: entry must exist as it is set to the source at the start of the search.
@@ -527,21 +529,23 @@ where
                     n_paths.push(n_path);
                 }
 
-                paths.insert(n, n_paths);
+                paths
+                    .entry(n)
+                    .and_modify(|e| e.append(&mut n_paths))
+                    .or_insert(n_paths);
             }
 
             // Stay done, once done.
-            done |= visited[target];
+            // done |= visited[target];
 
             // If a layer has been fully searched, switch to the next layer only if the target
             // hasn't been found at this depth.
-
             if layer.is_empty() && !done {
                 layer.append(&mut next_layer)
             }
         }
 
-        dbg!(&paths);
+        // dbg!(&paths);
 
         // If we're done, retrieve the target paths.
         paths.remove(&target).unwrap()
@@ -593,7 +597,18 @@ mod tests {
     use super::*;
 
     #[test]
-    fn shortest_paths() {
+    fn one_shortest_path() {
+        let mut graph = Graph::new();
+
+        let (a, b, c, d, e, f) = ("a", "b", "c", "d", "e", "f");
+        graph.insert(Edge::new(a, b));
+        graph.insert(Edge::new(b, c));
+
+        assert_eq!(graph.shortest_paths(0, 2), vec![vec![0, 1, 2]]);
+    }
+
+    #[test]
+    fn two_shortest_paths() {
         let mut graph = Graph::new();
 
         let (a, b, c, d, e, f) = ("a", "b", "c", "d", "e", "f");
@@ -603,8 +618,10 @@ mod tests {
         graph.insert(Edge::new(a, d));
         graph.insert(Edge::new(d, c));
 
-        graph.insert(Edge::new(a, e));
-        graph.insert(Edge::new(e, c));
+        assert_eq!(
+            graph.shortest_paths(0, 2),
+            vec![vec![0, 1, 2], vec![0, 3, 2]]
+        );
 
         dbg!(graph.shortest_paths(0, 2));
     }
