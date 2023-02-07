@@ -586,13 +586,26 @@ mod tests {
 
     use super::*;
 
+    macro_rules! graph {
+          ($($path:expr),*) => {{
+              let mut graph = Graph::new();
+
+              $(
+                  let mut iter = $path.into_iter().peekable();
+                  while let (Some(a), Some(b)) = (iter.next(), iter.peek()) {
+                      graph.insert(Edge::new(a, b));
+                  }
+
+              )*
+
+              graph
+          }}
+      }
+
     #[test]
     fn one_shortest_path() {
-        let mut graph = Graph::new();
-
         let (a, b, c) = ("a", "b", "c");
-        graph.insert(Edge::new(a, b));
-        graph.insert(Edge::new(b, c));
+        let mut graph = graph!([a, b, c]);
 
         // Indexing corresponds to naming: a: 0, b: 1, c: 2.
         assert_eq!(graph.shortest_paths(0, 2), vec![vec![0, 1, 2]]);
@@ -600,14 +613,8 @@ mod tests {
 
     #[test]
     fn two_shortest_paths() {
-        let mut graph = Graph::new();
-
         let (a, b, c, d) = ("a", "b", "c", "d");
-        graph.insert(Edge::new(a, b));
-        graph.insert(Edge::new(b, c));
-
-        graph.insert(Edge::new(a, d));
-        graph.insert(Edge::new(d, c));
+        let mut graph = graph!([a, b, c], [a, d, c]);
 
         assert_eq!(
             graph.shortest_paths(0, 2),
@@ -617,18 +624,8 @@ mod tests {
 
     #[test]
     fn ignore_longer_paths() {
-        let mut graph = Graph::new();
-
         let (a, b, c, d, e) = ("a", "b", "c", "d", "e");
-        graph.insert(Edge::new(a, b));
-        graph.insert(Edge::new(b, c));
-
-        graph.insert(Edge::new(a, d));
-        graph.insert(Edge::new(d, c));
-
-        graph.insert(Edge::new(a, e));
-        graph.insert(Edge::new(e, d));
-        graph.insert(Edge::new(d, c));
+        let mut graph = graph!([a, b, c], [a, d, c], [a, e, d, c]);
 
         assert_eq!(
             graph.shortest_paths(0, 2),
