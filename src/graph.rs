@@ -1,7 +1,7 @@
 //! A module for working with graphs.
 
 use std::{
-    collections::{BTreeMap, HashMap, HashSet},
+    collections::{BTreeMap, HashMap, HashSet, VecDeque},
     fmt::Debug,
     hash::Hash,
     ops::Sub,
@@ -473,15 +473,7 @@ where
     }
 
     fn shortest_paths(&mut self, source: usize, target: usize) -> Vec<Vec<usize>> {
-        dbg!(source, target);
-
-        use std::collections::VecDeque;
-
         let adjacency_matrix = self.adjacency_matrix();
-
-        dbg!(&self.index);
-
-        let mut done = false;
 
         let mut visited = vec![false; adjacency_matrix.nrows()];
         visited[0] = true;
@@ -508,7 +500,8 @@ where
                 .map(|(n, _)| n)
                 .collect();
 
-            // Remember where we've been so we don't accidentally backtrack.
+            // Remember where we've been so we don't accidentally backtrack. Exclude the target so
+            // all shortest paths can be found.
             for n in neighbours {
                 if n != target {
                     visited[n] = true;
@@ -523,29 +516,26 @@ where
                 // Extend each "m"-ending path with "n" to create the "n"-ending paths.
                 for m_path in m_paths {
                     let mut n_path: Vec<usize> = vec![];
-                    n_path.extend_from_slice(&m_path);
+                    n_path.extend_from_slice(m_path);
                     n_path.push(n);
 
                     n_paths.push(n_path);
                 }
 
+                // Append the newest shortest paths ending in the target to ones found previously.
                 paths
                     .entry(n)
                     .and_modify(|e| e.append(&mut n_paths))
                     .or_insert(n_paths);
             }
 
-            // Stay done, once done.
-            // done |= visited[target];
-
             // If a layer has been fully searched, switch to the next layer only if the target
-            // hasn't been found at this depth.
-            if layer.is_empty() && !done {
+            // hasn't been found at this depth. The next layer will be empty if the target has been
+            // found.
+            if layer.is_empty() {
                 layer.append(&mut next_layer)
             }
         }
-
-        // dbg!(&paths);
 
         // If we're done, retrieve the target paths.
         paths.remove(&target).unwrap()
@@ -600,10 +590,11 @@ mod tests {
     fn one_shortest_path() {
         let mut graph = Graph::new();
 
-        let (a, b, c, d, e, f) = ("a", "b", "c", "d", "e", "f");
+        let (a, b, c) = ("a", "b", "c");
         graph.insert(Edge::new(a, b));
         graph.insert(Edge::new(b, c));
 
+        // Indexing corresponds to naming: a: 0, b: 1, c: 2.
         assert_eq!(graph.shortest_paths(0, 2), vec![vec![0, 1, 2]]);
     }
 
@@ -611,7 +602,7 @@ mod tests {
     fn two_shortest_paths() {
         let mut graph = Graph::new();
 
-        let (a, b, c, d, e, f) = ("a", "b", "c", "d", "e", "f");
+        let (a, b, c, d) = ("a", "b", "c", "d");
         graph.insert(Edge::new(a, b));
         graph.insert(Edge::new(b, c));
 
@@ -622,8 +613,27 @@ mod tests {
             graph.shortest_paths(0, 2),
             vec![vec![0, 1, 2], vec![0, 3, 2]]
         );
+    }
 
-        dbg!(graph.shortest_paths(0, 2));
+    #[test]
+    fn ignore_longer_paths() {
+        let mut graph = Graph::new();
+
+        let (a, b, c, d, e) = ("a", "b", "c", "d", "e");
+        graph.insert(Edge::new(a, b));
+        graph.insert(Edge::new(b, c));
+
+        graph.insert(Edge::new(a, d));
+        graph.insert(Edge::new(d, c));
+
+        graph.insert(Edge::new(a, e));
+        graph.insert(Edge::new(e, d));
+        graph.insert(Edge::new(d, c));
+
+        assert_eq!(
+            graph.shortest_paths(0, 2),
+            vec![vec![0, 1, 2], vec![0, 3, 2]]
+        );
     }
 
     #[test]
