@@ -216,7 +216,9 @@ where
             return matrix;
         }
 
-        self.generate_index();
+        if self.index.is_none() {
+            self.generate_index();
+        }
 
         // Safety: the previous call guarantees the index has been generated and stored.
         let n = self.index.as_ref().unwrap().len();
@@ -466,10 +468,76 @@ where
         self.index = Some(index);
     }
 
-    fn betweenness_centrality(&mut self) {
+    fn betweenness_centrality(&mut self) -> HashMap<T, f64> {
+        // B(x) = sum_st (shortest paths through x / total num of shortest paths)
+        //
+        // Needed:
+        // - shortest paths for each pair of nodes in the network
+        // - num shortest paths through each node of the network
+        //
+        // Two other implementation options:
+        //
+        // 1. [Kadabra](https://drops.dagstuhl.de/opus/volltexte/2016/6371/pdf/LIPIcs-ESA-2016-20.pdf)
+        // 2. [Brandes](https://pdodds.w3.uvm.edu/research/papers/others/2001/brandes2001a.pdf)
+
         // 1. For each pair of nodes in the graph, compute the shortest paths.
-        // 2. For each node, count the number of shortest paths it's in.
-        // 3. Do the maths and return centrality.
+        use itertools::Itertools;
+
+        if self.index.is_none() {
+            self.generate_index();
+        }
+
+        let index = self.index.as_ref().unwrap();
+
+        let nodes: Vec<usize> = index.values().copied().collect();
+        let pairs: Vec<(usize, usize)> = index.values().copied().tuple_combinations().collect();
+
+        let mut shortest_paths = HashMap::new();
+
+        for node in &nodes {
+            for (source, target) in &pairs {
+                if *source == *node && *target == *node {
+                    continue;
+                }
+
+                shortest_paths.insert((*source, *target), self.shortest_paths(*source, *target));
+            }
+        }
+
+        // 2. For each shortest path between s and t, count how many go through v.
+        let mut pass_through = HashMap::new();
+
+        for ((source, target), paths) in &shortest_paths {
+            for path in paths {
+                for node in path {
+                    if source == node || target == node {
+                        continue;
+                    }
+
+                    pass_through
+                        .entry((source, target, node))
+                        .and_modify(|e| *e += 1.0f64)
+                        .or_insert(1.0);
+                }
+            }
+        }
+
+        let mut centralities = HashMap::new();
+
+        // Calculate the centrality for each node.
+        for (n, i) in self.index.as_ref().unwrap() {
+            let centrality: f64 = pass_through
+                .iter()
+                .filter(|((_source, _target, node), _count)| i == *node)
+                .map(|((source, target, node), count)| {
+                    *count as f64 / shortest_paths.get(&(**source, **target)).unwrap().len() as f64
+                })
+                .sum();
+
+            centralities.insert(*n, centrality);
+        }
+
+        centralities
     }
 
     fn shortest_paths(&mut self, source: usize, target: usize) -> Vec<Vec<usize>> {
@@ -505,7 +573,11 @@ where
             for n in neighbours {
                 if n != target {
                     visited[n] = true;
-                    next_layer.push_back(n);
+
+                    // Make sure the source or the target are never included in the next layer.
+                    if n != source {
+                        next_layer.push_back(n);
+                    }
                 }
 
                 // Fetch the paths that end in the current search source (m).
@@ -631,6 +703,28 @@ mod tests {
             graph.shortest_paths(0, 2),
             vec![vec![0, 1, 2], vec![0, 3, 2]]
         );
+    }
+
+    #[test]
+    fn duplicate_paths() {
+        let (a, b, c, d) = ("a", "b", "c", "d");
+        let mut graph = graph!([a, b, c]);
+        let mut graph = graph!([a, b, c, d]);
+
+        assert_eq!(graph.shortest_paths(2, 3), vec![vec![2, 3]])
+    }
+
+    #[test]
+    fn betweenness() {
+        let (a, b, c, d) = ("a", "b", "c", "d");
+        let mut graph = graph!([a, b, c, d]);
+
+        let betweenness_centrality = graph.betweenness_centrality();
+
+        assert_eq!(betweenness_centrality.get_key_value(a), Some((&a, &0.0)));
+        assert_eq!(betweenness_centrality.get_key_value(b), Some((&b, &2.0)));
+        assert_eq!(betweenness_centrality.get_key_value(c), Some((&c, &2.0)));
+        assert_eq!(betweenness_centrality.get_key_value(d), Some((&d, &0.0)));
     }
 
     #[test]

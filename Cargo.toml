@@ -14,8 +14,5 @@ keywords = ["p2p", "peer-to-peer", "networking"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+itertools = "0.10"
 nalgebra = "0.31"
-
-[dev-dependencies]
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
