@@ -660,6 +660,7 @@ mod tests {
 
     use super::*;
 
+    // Creates a graph from a list of paths (that can overlap, the graph handles deduplication).
     macro_rules! graph {
           ($($path:expr),*) => {{
               let mut graph = Graph::new();
@@ -675,58 +676,6 @@ mod tests {
               graph
           }}
       }
-
-    #[test]
-    fn one_shortest_path() {
-        let (a, b, c) = ("a", "b", "c");
-        let mut graph = graph!([a, b, c]);
-
-        // Indexing corresponds to naming: a: 0, b: 1, c: 2.
-        assert_eq!(graph.shortest_paths(0, 2), vec![vec![0, 1, 2]]);
-    }
-
-    #[test]
-    fn two_shortest_paths() {
-        let (a, b, c, d) = ("a", "b", "c", "d");
-        let mut graph = graph!([a, b, c], [a, d, c]);
-
-        assert_eq!(
-            graph.shortest_paths(0, 2),
-            vec![vec![0, 1, 2], vec![0, 3, 2]]
-        );
-    }
-
-    #[test]
-    fn ignore_longer_paths() {
-        let (a, b, c, d, e) = ("a", "b", "c", "d", "e");
-        let mut graph = graph!([a, b, c], [a, d, c], [a, e, d, c]);
-
-        assert_eq!(
-            graph.shortest_paths(0, 2),
-            vec![vec![0, 1, 2], vec![0, 3, 2]]
-        );
-    }
-
-    #[test]
-    fn no_duplicate_paths() {
-        let (a, b, c, d) = ("a", "b", "c", "d");
-        let mut graph = graph!([a, b, c, d]);
-
-        assert_eq!(graph.shortest_paths(2, 3), vec![vec![2, 3]])
-    }
-
-    #[test]
-    fn betweenness() {
-        let (a, b, c, d) = ("a", "b", "c", "d");
-        let mut graph = graph!([a, b, c, d]);
-
-        let betweenness_centrality = graph.betweenness_centrality();
-
-        assert_eq!(betweenness_centrality.get_key_value(a), Some((&a, &0.0)));
-        assert_eq!(betweenness_centrality.get_key_value(b), Some((&b, &2.0)));
-        assert_eq!(betweenness_centrality.get_key_value(c), Some((&c, &2.0)));
-        assert_eq!(betweenness_centrality.get_key_value(d), Some((&d, &0.0)));
-    }
 
     #[test]
     fn new() {
@@ -1036,6 +985,33 @@ mod tests {
         );
     }
 
+    #[test]
+    fn betweenness_line_topology() {
+        let (a, b, c, d) = ("a", "b", "c", "d");
+        let mut graph = graph!([a, b, c, d]);
+
+        let betweenness_centrality = graph.betweenness_centrality();
+
+        assert_eq!(betweenness_centrality.get_key_value(a), Some((&a, &0.0)));
+        assert_eq!(betweenness_centrality.get_key_value(b), Some((&b, &2.0)));
+        assert_eq!(betweenness_centrality.get_key_value(c), Some((&c, &2.0)));
+        assert_eq!(betweenness_centrality.get_key_value(d), Some((&d, &0.0)));
+    }
+
+    #[test]
+    fn betweenness_star_topology() {
+        let (a, b, c, d, e) = ("a", "b", "c", "d", "e");
+        let mut graph = graph!([a, b, c], [e, b, d]);
+
+        let betweenness_centrality = graph.betweenness_centrality();
+
+        assert_eq!(betweenness_centrality.get_key_value(a), Some((&a, &0.0)));
+        assert_eq!(betweenness_centrality.get_key_value(b), Some((&b, &6.0)));
+        assert_eq!(betweenness_centrality.get_key_value(c), Some((&c, &0.0)));
+        assert_eq!(betweenness_centrality.get_key_value(d), Some((&d, &0.0)));
+        assert_eq!(betweenness_centrality.get_key_value(e), Some((&e, &0.0)));
+    }
+
     //
     // Private
     //
@@ -1209,5 +1185,44 @@ mod tests {
         );
 
         assert_eq!(graph.index.as_ref().unwrap().len(), 2);
+    }
+
+    #[test]
+    fn one_shortest_path() {
+        let (a, b, c) = ("a", "b", "c");
+        let mut graph = graph!([a, b, c]);
+
+        // Indexing corresponds to naming: a: 0, b: 1, c: 2.
+        assert_eq!(graph.shortest_paths(0, 2), vec![vec![0, 1, 2]]);
+    }
+
+    #[test]
+    fn two_shortest_paths() {
+        let (a, b, c, d) = ("a", "b", "c", "d");
+        let mut graph = graph!([a, b, c], [a, d, c]);
+
+        assert_eq!(
+            graph.shortest_paths(0, 2),
+            vec![vec![0, 1, 2], vec![0, 3, 2]]
+        );
+    }
+
+    #[test]
+    fn no_longer_paths() {
+        let (a, b, c, d, e) = ("a", "b", "c", "d", "e");
+        let mut graph = graph!([a, b, c], [a, d, c], [a, e, d, c]);
+
+        assert_eq!(
+            graph.shortest_paths(0, 2),
+            vec![vec![0, 1, 2], vec![0, 3, 2]]
+        );
+    }
+
+    #[test]
+    fn no_duplicate_shortest_paths() {
+        let (a, b, c, d) = ("a", "b", "c", "d");
+        let mut graph = graph!([a, b, c, d]);
+
+        assert_eq!(graph.shortest_paths(2, 3), vec![vec![2, 3]])
     }
 }
