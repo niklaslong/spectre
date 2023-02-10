@@ -469,18 +469,15 @@ where
     }
 
     pub fn betweenness_centrality(&mut self) -> HashMap<T, f64> {
-        // B(x) = sum_st (shortest paths through x / total num of shortest paths)
-        //
-        // Needed:
-        // - shortest paths for each pair of nodes in the network
-        // - num shortest paths through each node of the network
+        // B(v) = sum (shortest paths between s and t through v / total num of shortest paths
+        // between s and t)
         //
         // Two other implementation options:
         //
         // 1. [Kadabra](https://drops.dagstuhl.de/opus/volltexte/2016/6371/pdf/LIPIcs-ESA-2016-20.pdf)
         // 2. [Brandes](https://pdodds.w3.uvm.edu/research/papers/others/2001/brandes2001a.pdf)
 
-        // 1. For each pair of nodes in the graph, compute the shortest paths.
+        // For each pair of nodes in the graph, compute the shortest paths.
         use itertools::Itertools;
 
         if self.index.is_none() {
@@ -504,8 +501,8 @@ where
             }
         }
 
-        // 2. For each shortest path between s and t, count how many go through v.
-        let mut pass_through = HashMap::new();
+        // For each shortest path between s and t, count how many go through v.
+        let mut paths_through_v = HashMap::new();
 
         for ((source, target), paths) in &shortest_paths {
             for path in paths {
@@ -514,7 +511,7 @@ where
                         continue;
                     }
 
-                    pass_through
+                    paths_through_v
                         .entry((source, target, node))
                         .and_modify(|e| *e += 1.0f64)
                         .or_insert(1.0);
@@ -526,10 +523,12 @@ where
 
         // Calculate the centrality for each node.
         for (n, i) in self.index.as_ref().unwrap() {
-            let centrality: f64 = pass_through
+            let centrality: f64 = paths_through_v
                 .iter()
                 .filter(|((_source, _target, node), _count)| i == *node)
                 .map(|((source, target, _node), count)| {
+                    // Shortest paths between s and t through v divided by the total number of
+                    // shortest paths between s and t.
                     *count / shortest_paths.get(&(**source, **target)).unwrap().len() as f64
                 })
                 .sum();
