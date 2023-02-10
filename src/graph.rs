@@ -468,7 +468,7 @@ where
         self.index = Some(index);
     }
 
-    fn betweenness_centrality(&mut self) -> HashMap<T, f64> {
+    pub fn betweenness_centrality(&mut self) -> HashMap<T, f64> {
         // B(x) = sum_st (shortest paths through x / total num of shortest paths)
         //
         // Needed:
@@ -529,8 +529,8 @@ where
             let centrality: f64 = pass_through
                 .iter()
                 .filter(|((_source, _target, node), _count)| i == *node)
-                .map(|((source, target, node), count)| {
-                    *count as f64 / shortest_paths.get(&(**source, **target)).unwrap().len() as f64
+                .map(|((source, target, _node), count)| {
+                    *count / shortest_paths.get(&(**source, **target)).unwrap().len() as f64
                 })
                 .sum();
 
@@ -706,9 +706,8 @@ mod tests {
     }
 
     #[test]
-    fn duplicate_paths() {
+    fn no_duplicate_paths() {
         let (a, b, c, d) = ("a", "b", "c", "d");
-        let mut graph = graph!([a, b, c]);
         let mut graph = graph!([a, b, c, d]);
 
         assert_eq!(graph.shortest_paths(2, 3), vec![vec![2, 3]])
