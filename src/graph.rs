@@ -423,6 +423,9 @@ where
         (*algebraic_connectivity, fiedler_values_indexed)
     }
 
+    // Returns the betweeness centrality for each node.
+    //
+    // TODO: add maths?
     pub fn betweenness_centrality(&mut self) -> HashMap<T, f64> {
         // B(v) = sum (shortest paths between s and t through v / total num of shortest paths
         // between s and t)
@@ -612,6 +615,9 @@ where
         }
 
         // If we're done, retrieve the target paths.
+        //
+        // SAFETY: this will only return `None` if there are no paths between the source and the
+        // target, which can only happen if the graph is disjoint.
         paths.remove(&target).unwrap()
     }
 }
