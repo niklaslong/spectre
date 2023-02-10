@@ -7,6 +7,7 @@ use std::{
     ops::Sub,
 };
 
+use itertools::Itertools;
 use nalgebra::{DMatrix, DVector, SymmetricEigen};
 
 use crate::edge::Edge;
@@ -422,52 +423,6 @@ where
         (*algebraic_connectivity, fiedler_values_indexed)
     }
 
-    //
-    // Private
-    //
-
-    /// Clears the computed state.
-    ///
-    /// This should be called every time the set of edges is mutated since the cached state won't
-    /// correspond to the new graph.
-    fn clear_cache(&mut self) {
-        self.index = None;
-        self.degree_matrix = None;
-        self.adjacency_matrix = None;
-        self.laplacian_matrix = None;
-    }
-
-    /// Returns the set of unique vertices contained within the set of edges.
-    fn vertices_from_edges(&self) -> HashSet<T> {
-        let mut vertices: HashSet<T> = HashSet::new();
-        for edge in self.edges.iter() {
-            // Using a hashset guarantees uniqueness.
-            vertices.insert(*edge.source());
-            vertices.insert(*edge.target());
-        }
-
-        vertices
-    }
-
-    /// Constructs and stores an index of vertices for this set of edges.
-    ///
-    /// The index will be sorted by `T`'s implementation of `Ord`.
-    fn generate_index(&mut self) {
-        // It should be impossible to call this function if the cache is not empty.
-        debug_assert!(self.index.is_none());
-
-        let mut vertices: Vec<T> = self.vertices_from_edges().into_iter().collect();
-        vertices.sort();
-
-        let index: BTreeMap<T, usize> = vertices
-            .iter()
-            .enumerate()
-            .map(|(i, &vertex)| (vertex, i))
-            .collect();
-
-        self.index = Some(index);
-    }
-
     pub fn betweenness_centrality(&mut self) -> HashMap<T, f64> {
         // B(v) = sum (shortest paths between s and t through v / total num of shortest paths
         // between s and t)
@@ -478,7 +433,6 @@ where
         // 2. [Brandes](https://pdodds.w3.uvm.edu/research/papers/others/2001/brandes2001a.pdf)
 
         // For each pair of nodes in the graph, compute the shortest paths.
-        use itertools::Itertools;
 
         if self.index.is_none() {
             self.generate_index();
@@ -537,6 +491,52 @@ where
         }
 
         centralities
+    }
+
+    //
+    // Private
+    //
+
+    /// Clears the computed state.
+    ///
+    /// This should be called every time the set of edges is mutated since the cached state won't
+    /// correspond to the new graph.
+    fn clear_cache(&mut self) {
+        self.index = None;
+        self.degree_matrix = None;
+        self.adjacency_matrix = None;
+        self.laplacian_matrix = None;
+    }
+
+    /// Returns the set of unique vertices contained within the set of edges.
+    fn vertices_from_edges(&self) -> HashSet<T> {
+        let mut vertices: HashSet<T> = HashSet::new();
+        for edge in self.edges.iter() {
+            // Using a hashset guarantees uniqueness.
+            vertices.insert(*edge.source());
+            vertices.insert(*edge.target());
+        }
+
+        vertices
+    }
+
+    /// Constructs and stores an index of vertices for this set of edges.
+    ///
+    /// The index will be sorted by `T`'s implementation of `Ord`.
+    fn generate_index(&mut self) {
+        // It should be impossible to call this function if the cache is not empty.
+        debug_assert!(self.index.is_none());
+
+        let mut vertices: Vec<T> = self.vertices_from_edges().into_iter().collect();
+        vertices.sort();
+
+        let index: BTreeMap<T, usize> = vertices
+            .iter()
+            .enumerate()
+            .map(|(i, &vertex)| (vertex, i))
+            .collect();
+
+        self.index = Some(index);
     }
 
     fn shortest_paths(&mut self, source: usize, target: usize) -> Vec<Vec<usize>> {
