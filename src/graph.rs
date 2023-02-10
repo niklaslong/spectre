@@ -432,17 +432,17 @@ where
         // 1. [Kadabra](https://drops.dagstuhl.de/opus/volltexte/2016/6371/pdf/LIPIcs-ESA-2016-20.pdf)
         // 2. [Brandes](https://pdodds.w3.uvm.edu/research/papers/others/2001/brandes2001a.pdf)
 
-        // For each pair of nodes in the graph, compute the shortest paths.
-
         if self.index.is_none() {
             self.generate_index();
         }
 
+        // SAFETY: the index has already been generated in the previous block.
         let index = self.index.as_ref().unwrap();
 
         let nodes: Vec<usize> = index.values().copied().collect();
         let pairs: Vec<(usize, usize)> = index.values().copied().tuple_combinations().collect();
 
+        // For each pair of nodes in the graph, compute the shortest paths.
         let mut shortest_paths = HashMap::new();
 
         for node in &nodes {
@@ -473,9 +473,10 @@ where
             }
         }
 
+        // Calculate the centrality for each node.
         let mut centralities = HashMap::new();
 
-        // Calculate the centrality for each node.
+        // SAFETY: the index has already been generated.
         for (n, i) in self.index.as_ref().unwrap() {
             let centrality: f64 = paths_through_v
                 .iter()
@@ -483,6 +484,8 @@ where
                 .map(|((source, target, _node), count)| {
                     // Shortest paths between s and t through v divided by the total number of
                     // shortest paths between s and t.
+                    //
+                    // SAFETY: the paths must exist and there is no division by zero.
                     *count / shortest_paths.get(&(**source, **target)).unwrap().len() as f64
                 })
                 .sum();
