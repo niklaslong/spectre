@@ -552,8 +552,7 @@ where
                     *visited = x == i;
                 }
                 let mut pathlen: u32 = 1;
-                let mut path = Vec::new();
-                path.push(i);
+                let path = vec![i];
                 let mut path_list = Vec::new();
                 path_list.push(path);
 
@@ -673,13 +672,12 @@ where
             total_num_paths += num_paths;
         }
 
-        let mut n = 0;
         let mut centralities = HashMap::new();
-        for (node, _i) in self.index.as_ref().unwrap() {
+        for (n, node) in self.index.as_ref().unwrap().keys().enumerate() {
             let value = total_path_length[n] as f64 / num_paths[n] as f64;
             centralities.insert(*node, value);
-            n += 1;
         }
+
         centralities
     }
 }
@@ -1402,18 +1400,16 @@ mod tests {
         let mut graph = Graph::new();
 
         let mut n = 0;
-        let mut e = 0;
         for node in agraph {
             for connection in node {
                 if connection > n {
                     graph.insert(Edge::new(n, connection));
-                    e += 1;
                 }
             }
             n += 1;
         }
 
-        let betweenness_centrality = graph.betweenness_centrality();
+        let _betweenness_centrality = graph.betweenness_centrality();
 
     }
 
