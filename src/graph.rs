@@ -513,7 +513,7 @@ where
         }
         let indices: Vec<Vec<usize>> = self.adjacency_indices();
         let num_nodes = indices.len();
-        println!("indices: {:?}", indices);
+        // println!("indices: {:?}", indices);
 
         let mut betweenness_count: Vec<u32> = vec![0; num_nodes];
         let mut total_path_length: Vec<u32> = vec![0; num_nodes];
@@ -539,7 +539,7 @@ where
                 .take(num_nodes)
                 .skip(i + 1)
             {
-                println!("  add j to search list {}", j);
+                // println!("  add j to search list {}", j);
                 search_list.push(j);
                 *search_state = false;
             }
@@ -552,7 +552,7 @@ where
                 // 4. we also determine if no path exists (disconnected graph case)
                 let mut done = false;
                 let j = search_list[0];
-                println!("doing j {}", j);
+                // println!("doing j {}", j);
                 for (x, visited) in visited.iter_mut().enumerate().take(num_nodes) {
                     *visited = x == i;
                 }
@@ -577,37 +577,28 @@ where
                         let vertex = &indices[*q];
                         for x in vertex {
                             // Check if we've been here before
-                            println!("visited status of {} is {}", *x, visited[*x]);
+                            // println!("visited status of {} is {}", *x, visited[*x]);
                             if !visited[*x] {
                                 // if not, we're still not necessarily disconnected for this i-j instance
                                 touched = true;
                                 // one of our starting nodes for next round
-                                println!("  push for next round {}", *x);
+                                // println!("  push for next round {}", *x);
                                 let mut queue = el.clone();
                                 queue.push_back(*x);
                                 if !search_state[*x] {
                                     // if this i-x is to be searched, then we're done for that pair
                                     // but we queue it first, in case other paths for same i-q are found
-                                    println!("  mark this j {} found for pathlen {}", *x, pathlen);
+                                    // println!("  mark this j {} found for pathlen {}", *x, pathlen);
                                     found_for_this_pathlen.push(*x);
-                                    // if pathlen > 1 {
-                                    //     betweenness_count[*q] += 1;
-                                    //     println!("  increment bcount index {}, now {}", *q, betweenness_count[*q]);
-                                    // }
                                     if queue.len() > 2 {
                                         for i in 1..queue.len()-1 {
                                             let index = queue.get(i).unwrap();
                                             betweenness_count[*index] += 1;
-                                            println!("  increment bcount index {}, now {}", *q, betweenness_count[*q]);
+                                            // println!("  increment bcount index {}, now {}", *q, betweenness_count[*q]);
                                         }
                                     }
                                 }
                                 queued_for_next_round.push(queue);
-
-                                // if pathlen > 1 {
-                                //     betweenness_count[*q] += 1;
-                                //     println!("  increment bcount index {}, now {}", *q, betweenness_count[*q]);
-                                // }
 
                             }
                         }
@@ -631,7 +622,7 @@ where
                         search_list.retain(|&x| x != f);
                         search_state[f] = true;
                         if f == j {
-                            println!("  j now done");
+                            // println!("  j now done");
                             done = true;
                         }
                     }
@@ -643,7 +634,7 @@ where
                     }
 
                     pathlen += 1;
-                    println!("  pathlen now {}", pathlen)
+                    // println!("  pathlen now {}", pathlen)
                 }
             }
         }
@@ -751,7 +742,7 @@ fn sorted_eigenvalue_vector_pairs(
 
 #[cfg(test)]
 mod tests {
-    // use std::fs;
+    use std::fs;
 
     use nalgebra::dmatrix;
     use serde::Deserialize;
@@ -1264,6 +1255,43 @@ mod tests {
     }
 
     #[test]
+    fn closeness_randomish_graph() {
+        let mut graph: Graph<usize> = Graph::new();
+        // this graph reproduces the image at:
+        // https://www.sotr.blog/articles/breadth-first-search
+        graph.insert(Edge::new(0, 3));
+        graph.insert(Edge::new(0, 5));
+        graph.insert(Edge::new(5, 1));
+        graph.insert(Edge::new(1, 2));
+        graph.insert(Edge::new(2, 4));
+        graph.insert(Edge::new(2, 6));
+        graph.insert(Edge::new(1, 3));
+
+        let between_map = graph.betweenness_centrality();
+        let close_map = graph.closeness_centrality();
+        let mut betweenness: [f64; 7] = [0.0; 7];
+        let mut closeness: [f64; 7] = [0.0; 7];
+        for i in 0..7 {
+            betweenness[i] =  *between_map.get(&i).unwrap();
+            closeness[i] =  *close_map.get(&i).unwrap();
+        }
+
+        let total_path_length = [28, 11, 13, 14, 19, 14, 19];
+        let num_paths = [10, 7, 7, 7, 7, 7, 7];
+        let total_num_paths: i32 = 52;
+        let mut expected_closeness: [f64; 7] = [0.0; 7];
+        let mut expected_betweenness: [f64; 7] = [0.0; 7];
+        let betweenness_count = [1, 13, 11, 4, 0, 4, 0];
+        for i in 0..7 {
+            expected_closeness[i] = total_path_length[i] as f64 / num_paths[i] as f64;
+            expected_betweenness[i] = betweenness_count[i] as f64 / total_num_paths as f64;
+        }
+
+        assert_eq!(betweenness, expected_betweenness);
+        assert_eq!(closeness, expected_closeness);
+    }
+
+    #[test]
     fn closeness_star_graph_a() {
         // 7-pointed star, 8 nodes
         // center is 0
@@ -1335,6 +1363,87 @@ mod tests {
         assert_eq!(closeness, expected_closeness);
     }
 
+    #[test]
+    fn closeness_disconnected_graph() {
+        // 9 vertices
+        // 4 verts, 0-3: square, all points connected
+        // 5 verts, 4-8: star, with v4 in the center
+        let mut graph: Graph<usize> = Graph::new();
+        graph.insert(Edge::new(0, 1));
+        graph.insert(Edge::new(0, 2));
+        graph.insert(Edge::new(0, 3));
+        graph.insert(Edge::new(1, 2));
+        graph.insert(Edge::new(1, 3));
+        graph.insert(Edge::new(2, 3));
+        graph.insert(Edge::new(4, 5));
+        graph.insert(Edge::new(4, 6));
+        graph.insert(Edge::new(4, 7));
+        graph.insert(Edge::new(4, 8));
+
+        let between_map = graph.betweenness_centrality();
+        let close_map = graph.closeness_centrality();
+        let mut betweenness: [f64; 9] = [0.0; 9];
+        let mut closeness: [f64; 9] = [0.0; 9];
+        for i in 0..9 {
+            betweenness[i] =  *between_map.get(&i).unwrap();
+            closeness[i] =  *close_map.get(&i).unwrap();
+        }
+
+        let total_path_length = [3, 3, 3, 3, 4, 7, 7, 7, 7];
+        let num_paths = [3, 3, 3, 3, 4, 4, 4, 4, 4];
+        let total_num_paths: i32 = 32;
+        let mut expected_closeness: [f64; 9] = [0.0; 9];
+        let mut expected_betweenness: [f64; 9] = [0.0; 9];
+        let betweenness_count = [0, 0, 0, 0, 6, 0, 0, 0, 0];
+        for i in 0..9 {
+            expected_closeness[i] = total_path_length[i] as f64 / num_paths[i] as f64;
+            expected_betweenness[i] = betweenness_count[i] as f64 / total_num_paths as f64;
+        }
+        assert_eq!(betweenness, expected_betweenness);
+        assert_eq!(closeness, expected_closeness);
+    }
+
+    // Helper function to create an AGraph from a json file.
+    // The file will begin like this:
+    //   {"agraph":[[2630,3217,1608,1035,...
+    // and end like this:
+    //   ...2316,1068,1238,704,2013]]}
+    pub fn load_sample(filepath: &str) -> Vec<Vec<usize>> {
+        let jstring = fs::read_to_string(filepath).unwrap();
+        let sample: Sample = serde_json::from_str(&jstring).unwrap();
+        sample.agraph
+    }
+
+    #[test]
+    fn betweenness_medium_graph() {
+        let agraph = load_sample("testdata/sample-2531.json");
+        println!("agraph size: {}", agraph.len());
+        let mut graph = Graph::new();
+
+        let mut n = 0;
+        let mut e = 0;
+        for node in agraph {
+            for connection in node {
+                if connection > n {
+                    graph.insert(Edge::new(n, connection));
+                    e += 1;
+                }
+            }
+            n += 1;
+        }
+
+        println!("num nodes: {}", n);
+        println!("num edges: {}", e);
+
+        println!("START BETWEENNESS --------------------------- ");
+        let betweenness_centrality = graph.betweenness_centrality();
+        println!("betweenness {:?}", betweenness_centrality);
+       // assert_eq!(betweenness_centrality.get_key_value(a), Some((&a, &0.0)));
+        // assert_eq!(betweenness_centrality.get_key_value(b), Some((&b, &6.0)));
+        // assert_eq!(betweenness_centrality.get_key_value(c), Some((&c, &0.0)));
+        // assert_eq!(betweenness_centrality.get_key_value(d), Some((&d, &0.0)));
+        // assert_eq!(betweenness_centrality.get_key_value(e), Some((&e, &0.0)));
+    }
 
     #[test]
     fn betweenness_line_topology() {
