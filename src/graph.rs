@@ -1,7 +1,7 @@
 //! A module for working with graphs.
 
 use std::{
-    collections::{BTreeMap, HashMap, HashSet, VecDeque},
+    collections::{BTreeMap, HashMap, HashSet},
     hash::Hash,
     ops::Sub,
 };
@@ -479,7 +479,6 @@ where
         self.index = Some(index);
     }
 
-
     fn adjacency_indices(&mut self) -> Vec<Vec<usize>> {
         let mut indices: Vec<Vec<usize>> = Vec::new();
         let adjacency_matrix = self.adjacency_matrix();
@@ -509,11 +508,10 @@ where
     ///
     pub fn betweenness_and_closeness_centrality(&mut self) {
         if self.betweenness_count.is_some() {
-            return
+            return;
         }
         let indices: Vec<Vec<usize>> = self.adjacency_indices();
         let num_nodes = indices.len();
-        // println!("indices: {:?}", indices);
 
         let mut betweenness_count: Vec<u32> = vec![0; num_nodes];
         let mut total_path_length: Vec<u32> = vec![0; num_nodes];
@@ -526,7 +524,6 @@ where
             let mut visited: Vec<bool> = vec![false; num_nodes];
             let mut search_state: Vec<bool> = vec![false; num_nodes];
             let mut search_list: Vec<usize> = Vec::new();
-            println!("doing i {}", i);
 
             // mark node i and all those before i as searched, this sets
             // up the search space for the next iterations of the loop.
@@ -539,7 +536,6 @@ where
                 .take(num_nodes)
                 .skip(i + 1)
             {
-                // println!("  add j to search list {}", j);
                 search_list.push(j);
                 *search_state = false;
             }
@@ -552,13 +548,12 @@ where
                 // 4. we also determine if no path exists (disconnected graph case)
                 let mut done = false;
                 let j = search_list[0];
-                // println!("doing j {}", j);
                 for (x, visited) in visited.iter_mut().enumerate().take(num_nodes) {
                     *visited = x == i;
                 }
                 let mut pathlen: u32 = 1;
-                let mut first = VecDeque::new();
-                first.push_back(i);
+                let mut first = Vec::new();
+                first.push(i);
                 let mut queue_list = Vec::new();
                 queue_list.push(first);
 
@@ -573,33 +568,28 @@ where
                     let mut queued_for_next_round = Vec::new();
                     let mut touched: bool = false;
                     for el in queue_list.as_slice() {
-                        let q = el.back().unwrap();
-                        let vertex = &indices[*q];
+                        let q = el[el.len() - 1];
+                        let vertex = &indices[q];
                         for x in vertex {
                             // Check if we've been here before
-                            // println!("visited status of {} is {}", *x, visited[*x]);
                             if !visited[*x] {
                                 // if not, we're still not necessarily disconnected for this i-j instance
                                 touched = true;
                                 // one of our starting nodes for next round
-                                // println!("  push for next round {}", *x);
                                 let mut queue = el.clone();
-                                queue.push_back(*x);
+                                queue.push(*x);
                                 if !search_state[*x] {
                                     // if this i-x is to be searched, then we're done for that pair
                                     // but we queue it first, in case other paths for same i-q are found
-                                    // println!("  mark this j {} found for pathlen {}", *x, pathlen);
                                     found_for_this_pathlen.push(*x);
                                     if queue.len() > 2 {
-                                        for i in 1..queue.len()-1 {
+                                        for i in 1..queue.len() - 1 {
                                             let index = queue.get(i).unwrap();
                                             betweenness_count[*index] += 1;
-                                            // println!("  increment bcount index {}, now {}", *q, betweenness_count[*q]);
                                         }
                                     }
                                 }
                                 queued_for_next_round.push(queue);
-
                             }
                         }
                     }
@@ -608,9 +598,9 @@ where
                     queue_list.clear();
                     // load up the queue list, marked as visited
                     for el in queued_for_next_round {
-                        let index = el.back().unwrap();
+                        let index = el[el.len() - 1];
                         queue_list.push(el.clone());
-                        visited[*index] = true;
+                        visited[index] = true;
                     }
                     // now we do bookkeeping for any found
                     // shortest paths.
@@ -622,7 +612,6 @@ where
                         search_list.retain(|&x| x != f);
                         search_state[f] = true;
                         if f == j {
-                            // println!("  j now done");
                             done = true;
                         }
                     }
@@ -634,7 +623,6 @@ where
                     }
 
                     pathlen += 1;
-                    // println!("  pathlen now {}", pathlen)
                 }
             }
         }
@@ -647,18 +635,17 @@ where
         println!("self.num_paths: {:?}", self.num_paths);
     }
 
-
     /// This method returns the betweenness for a given Graph.
     ///
     /// Betweenness: When a shortest path is found, for all nodes
     /// in-between (i.e., not an end point), increment their betweenness value.
     /// Normalize the counts by dividing by the number of shortest paths found
     ///
-    pub fn betweenness_centrality(&mut self)  -> HashMap<T, f64> {
+    pub fn betweenness_centrality(&mut self) -> HashMap<T, f64> {
         self.betweenness_and_closeness_centrality();
 
-        let betweenness_count  = self.betweenness_count.as_ref().unwrap();
-        let num_paths  = self.num_paths.as_ref().unwrap();
+        let betweenness_count = self.betweenness_count.as_ref().unwrap();
+        let num_paths = self.num_paths.as_ref().unwrap();
 
         let mut total_num_paths: u32 = 0;
         for num_paths in num_paths.iter() {
@@ -678,11 +665,11 @@ where
     /// Closeness: for each node, find all shortest paths to all other nodes.
     /// Accumulate all path lengths, accumulate number of paths, and then compute
     /// average path length.
-    pub fn closeness_centrality(&mut self)  -> HashMap<T, f64> {
+    pub fn closeness_centrality(&mut self) -> HashMap<T, f64> {
         self.betweenness_and_closeness_centrality();
 
-        let total_path_length  = self.total_path_length.as_ref().unwrap();
-        let num_paths  = self.num_paths.as_ref().unwrap();
+        let total_path_length = self.total_path_length.as_ref().unwrap();
+        let num_paths = self.num_paths.as_ref().unwrap();
 
         let mut total_num_paths: u32 = 0;
         for num_paths in num_paths.iter() {
@@ -698,8 +685,6 @@ where
         }
         centralities
     }
-
-
 }
 
 //
@@ -1272,8 +1257,8 @@ mod tests {
         let mut betweenness: [f64; 7] = [0.0; 7];
         let mut closeness: [f64; 7] = [0.0; 7];
         for i in 0..7 {
-            betweenness[i] =  *between_map.get(&i).unwrap();
-            closeness[i] =  *close_map.get(&i).unwrap();
+            betweenness[i] = *between_map.get(&i).unwrap();
+            closeness[i] = *close_map.get(&i).unwrap();
         }
 
         let total_path_length = [28, 11, 13, 14, 19, 14, 19];
@@ -1309,8 +1294,8 @@ mod tests {
         let mut betweenness: [f64; 8] = [0.0; 8];
         let mut closeness: [f64; 8] = [0.0; 8];
         for i in 0..8 {
-            betweenness[i] =  *between_map.get(&i).unwrap();
-            closeness[i] =  *close_map.get(&i).unwrap();
+            betweenness[i] = *between_map.get(&i).unwrap();
+            closeness[i] = *close_map.get(&i).unwrap();
         }
 
         let total_path_length = [7, 13, 13, 13, 13, 13, 13, 13];
@@ -1345,8 +1330,8 @@ mod tests {
         let mut betweenness: [f64; 8] = [0.0; 8];
         let mut closeness: [f64; 8] = [0.0; 8];
         for i in 0..8 {
-            betweenness[i] =  *between_map.get(&i).unwrap();
-            closeness[i] =  *close_map.get(&i).unwrap();
+            betweenness[i] = *between_map.get(&i).unwrap();
+            closeness[i] = *close_map.get(&i).unwrap();
         }
 
         let total_path_length = [13, 13, 13, 13, 13, 13, 13, 7];
@@ -1385,8 +1370,8 @@ mod tests {
         let mut betweenness: [f64; 9] = [0.0; 9];
         let mut closeness: [f64; 9] = [0.0; 9];
         for i in 0..9 {
-            betweenness[i] =  *between_map.get(&i).unwrap();
-            closeness[i] =  *close_map.get(&i).unwrap();
+            betweenness[i] = *between_map.get(&i).unwrap();
+            closeness[i] = *close_map.get(&i).unwrap();
         }
 
         let total_path_length = [3, 3, 3, 3, 4, 7, 7, 7, 7];
@@ -1438,7 +1423,7 @@ mod tests {
         println!("START BETWEENNESS --------------------------- ");
         let betweenness_centrality = graph.betweenness_centrality();
         println!("betweenness {:?}", betweenness_centrality);
-       // assert_eq!(betweenness_centrality.get_key_value(a), Some((&a, &0.0)));
+        // assert_eq!(betweenness_centrality.get_key_value(a), Some((&a, &0.0)));
         // assert_eq!(betweenness_centrality.get_key_value(b), Some((&b, &6.0)));
         // assert_eq!(betweenness_centrality.get_key_value(c), Some((&c, &0.0)));
         // assert_eq!(betweenness_centrality.get_key_value(d), Some((&d, &0.0)));
@@ -1454,8 +1439,14 @@ mod tests {
         println!("line topology {:?}", betweenness_centrality);
 
         assert_eq!(betweenness_centrality.get_key_value(a), Some((&a, &0.0)));
-        assert_eq!(betweenness_centrality.get_key_value(b), Some((&b, &(2.0/12.0))));
-        assert_eq!(betweenness_centrality.get_key_value(c), Some((&c, &(2.0/12.0))));
+        assert_eq!(
+            betweenness_centrality.get_key_value(b),
+            Some((&b, &(2.0 / 12.0)))
+        );
+        assert_eq!(
+            betweenness_centrality.get_key_value(c),
+            Some((&c, &(2.0 / 12.0)))
+        );
         assert_eq!(betweenness_centrality.get_key_value(d), Some((&d, &0.0)));
     }
 
@@ -1469,10 +1460,12 @@ mod tests {
         println!("star topology {:?}", betweenness_centrality);
 
         assert_eq!(betweenness_centrality.get_key_value(a), Some((&a, &0.0)));
-        assert_eq!(betweenness_centrality.get_key_value(b), Some((&b, &(6.0/20.0))));
+        assert_eq!(
+            betweenness_centrality.get_key_value(b),
+            Some((&b, &(6.0 / 20.0)))
+        );
         assert_eq!(betweenness_centrality.get_key_value(c), Some((&c, &0.0)));
         assert_eq!(betweenness_centrality.get_key_value(d), Some((&d, &0.0)));
         assert_eq!(betweenness_centrality.get_key_value(e), Some((&e, &0.0)));
     }
-
 }
