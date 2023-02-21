@@ -552,10 +552,10 @@ where
                     *visited = x == i;
                 }
                 let mut pathlen: u32 = 1;
-                let mut first = Vec::new();
-                first.push(i);
-                let mut queue_list = Vec::new();
-                queue_list.push(first);
+                let mut path = Vec::new();
+                path.push(i);
+                let mut path_list = Vec::new();
+                path_list.push(path);
 
                 while !done {
                     // for all shortest paths we find (and not necessily the i-j path we
@@ -567,8 +567,8 @@ where
                     // used as a starting node in the next round
                     let mut queued_for_next_round = Vec::new();
                     let mut touched: bool = false;
-                    for el in queue_list.as_slice() {
-                        let q = el[el.len() - 1];
+                    for path in path_list.as_slice() {
+                        let q = path[path.len() - 1];
                         let vertex = &indices[q];
                         for x in vertex {
                             // Check if we've been here before
@@ -576,7 +576,7 @@ where
                                 // if not, we're still not necessarily disconnected for this i-j instance
                                 touched = true;
                                 // one of our starting nodes for next round
-                                let mut queue = el.clone();
+                                let mut queue = path.clone();
                                 queue.push(*x);
                                 if !search_state[*x] {
                                     // if this i-x is to be searched, then we're done for that pair
@@ -595,11 +595,11 @@ where
                     }
 
                     // prep for next round, start fresh queue list
-                    queue_list.clear();
+                    path_list.clear();
                     // load up the queue list, marked as visited
                     for el in queued_for_next_round {
                         let index = el[el.len() - 1];
-                        queue_list.push(el.clone());
+                        path_list.push(el.clone());
                         visited[index] = true;
                     }
                     // now we do bookkeeping for any found
@@ -630,9 +630,6 @@ where
         self.betweenness_count = Some(betweenness_count);
         self.total_path_length = Some(total_path_length);
         self.num_paths = Some(num_paths);
-        println!("self.betweenness_count: {:?}", self.betweenness_count);
-        println!("self.total_path_length: {:?}", self.total_path_length);
-        println!("self.num_paths: {:?}", self.num_paths);
     }
 
     /// This method returns the betweenness for a given Graph.
@@ -1402,7 +1399,6 @@ mod tests {
     #[test]
     fn betweenness_medium_graph() {
         let agraph = load_sample("testdata/sample-2531.json");
-        println!("agraph size: {}", agraph.len());
         let mut graph = Graph::new();
 
         let mut n = 0;
@@ -1417,17 +1413,8 @@ mod tests {
             n += 1;
         }
 
-        println!("num nodes: {}", n);
-        println!("num edges: {}", e);
-
-        println!("START BETWEENNESS --------------------------- ");
         let betweenness_centrality = graph.betweenness_centrality();
-        println!("betweenness {:?}", betweenness_centrality);
-        // assert_eq!(betweenness_centrality.get_key_value(a), Some((&a, &0.0)));
-        // assert_eq!(betweenness_centrality.get_key_value(b), Some((&b, &6.0)));
-        // assert_eq!(betweenness_centrality.get_key_value(c), Some((&c, &0.0)));
-        // assert_eq!(betweenness_centrality.get_key_value(d), Some((&d, &0.0)));
-        // assert_eq!(betweenness_centrality.get_key_value(e), Some((&e, &0.0)));
+
     }
 
     #[test]
@@ -1436,7 +1423,6 @@ mod tests {
         let mut graph = graph!([a, b, c, d]);
 
         let betweenness_centrality = graph.betweenness_centrality();
-        println!("line topology {:?}", betweenness_centrality);
 
         assert_eq!(betweenness_centrality.get_key_value(a), Some((&a, &0.0)));
         assert_eq!(
@@ -1456,8 +1442,6 @@ mod tests {
         let mut graph = graph!([a, b, c], [e, b, d]);
 
         let betweenness_centrality = graph.betweenness_centrality();
-
-        println!("star topology {:?}", betweenness_centrality);
 
         assert_eq!(betweenness_centrality.get_key_value(a), Some((&a, &0.0)));
         assert_eq!(
