@@ -481,8 +481,8 @@ where
             indices.push(Vec::new());
         }
 
-        // For all our edges, check if the nodes are in our address list
-        // We use the value of the addresses to find the index
+        // For all our edges, check if the nodes are in our nodes_to_keep list
+        // We use the value of the node to find the index
         // From then on, it's all integer indices for us
         for edge in self.edges.iter() {
             let source = *edge.source();
@@ -506,7 +506,7 @@ where
         indices
     }
 
-    fn get_adjacency_indices(&mut self) -> Vec<Vec<usize>> {
+    pub fn get_adjacency_indices(&mut self) -> Vec<Vec<usize>> {
         let mut indices: Vec<Vec<usize>> = Vec::new();
         let adjacency_matrix = self.adjacency_matrix();
 
@@ -756,8 +756,9 @@ mod tests {
 
     use super::*;
 
-    #[derive(Default, Clone, Deserialize)]
+    #[derive(Default, Clone, Deserialize, Debug)]
     pub struct Sample {
+        pub node_ips: Vec<String>,
         pub indices: Vec<Vec<usize>>,
     }
 
@@ -1371,6 +1372,43 @@ mod tests {
     }
 
     #[test]
+    fn closeness_star_graph_c() {
+        // 7-pointed star, 8 nodes
+        // center is 7
+        let mut graph: Graph<usize> = Graph::new();
+        graph.insert(Edge::new(6, 3));
+        graph.insert(Edge::new(4, 3));
+        graph.insert(Edge::new(5, 3));
+        graph.insert(Edge::new(1, 3));
+        graph.insert(Edge::new(2, 3));
+        graph.insert(Edge::new(7, 3));
+        graph.insert(Edge::new(0, 3));
+
+        let between_map = graph.betweenness_centrality();
+        let close_map = graph.closeness_centrality();
+
+        let mut betweenness: [f64; 8] = [0.0; 8];
+        let mut closeness: [f64; 8] = [0.0; 8];
+        for i in 0..8 {
+            betweenness[i] = *between_map.get(&i).unwrap();
+            closeness[i] = *close_map.get(&i).unwrap();
+        }
+
+        let total_path_length = [13, 13, 13, 7, 13, 13, 13, 13];
+        let num_paths = [7, 7, 7, 7, 7, 7, 7, 7];
+        let total_num_paths: i32 = 56;
+        let mut expected_closeness: [f64; 8] = [0.0; 8];
+        let mut expected_betweenness: [f64; 8] = [0.0; 8];
+        let betweenness_count = [0, 0, 0, 21, 0, 0, 0, 0];
+        for i in 0..8 {
+            expected_closeness[i] = total_path_length[i] as f64 / num_paths[i] as f64;
+            expected_betweenness[i] = betweenness_count[i] as f64 / total_num_paths as f64;
+        }
+        assert_eq!(betweenness, expected_betweenness);
+        assert_eq!(closeness, expected_closeness);
+    }
+
+    #[test]
     fn closeness_disconnected_graph() {
         // 9 vertices
         // 4 verts, 0-3: square, all points connected
@@ -1415,31 +1453,56 @@ mod tests {
     //   {"indices":[[2630,3217,1608,1035,...
     // and end like this:
     //   ...2316,1068,1238,704,2013]]}
-    pub fn load_sample(filepath: &str) -> Vec<Vec<usize>> {
+    pub fn load_sample(filepath: &str) -> Sample {
         let jstring = fs::read_to_string(filepath).unwrap();
         let sample: Sample = serde_json::from_str(&jstring).unwrap();
-        sample.indices
+        sample
     }
 
-    #[test]
-    fn betweenness_medium_graph() {
-        let indices = load_sample("testdata/sample-2531.json");
-        let mut graph = Graph::new();
 
+    #[test]
+    fn test_loaded_sample() {
+        let sample = load_sample("testdata/sample.json");
+
+        let mut graph1: Graph<&str> = Graph::new();
         let mut n = 0;
-        for node in indices {
+        for node in &sample.indices {
             for connection in node {
-                if connection > n {
-                    graph.insert(Edge::new(n, connection));
+                if *connection > n {
+                    graph1.insert(Edge::new(&sample.node_ips[n], &sample.node_ips[*connection]));
                 }
             }
             n += 1;
         }
 
-        let betweenness_centrality = graph.betweenness_centrality();
-        println!("betweenness_centrality: {betweenness_centrality:?}" );
+        let indices1 = graph1.get_adjacency_indices();
+        let betweenness_centrality1 = graph1.betweenness_centrality();
+        let closeness_centrality1 = graph1.closeness_centrality();
 
+        let mut graph2: Graph<&str> = Graph::new();
+        let mut n = 0;
+        for node in &sample.indices {
+            for connection in node {
+                if *connection > n {
+                    graph2.insert(Edge::new(&sample.node_ips[n], &sample.node_ips[*connection]));
+                }
+            }
+            n += 1;
+        }
 
+        let indices2 = graph2.get_adjacency_indices();
+        let betweenness_centrality2 = graph2.betweenness_centrality();
+        let closeness_centrality2 = graph2.closeness_centrality();
+        assert_eq!(indices1, indices2);
+        assert_eq!(betweenness_centrality1, betweenness_centrality2);
+        assert_eq!(closeness_centrality1, closeness_centrality2);
+
+        // let a1 = indices1[1].len();
+        // let a5 = indices1[5].len();
+        // let a9 = indices1[9].len();
+        // let b1 = sample.indices[1].len();
+        // let b5 = sample.indices[5].len();
+        // let b9 = sample.indices[9].len();
     }
 
     #[test]
