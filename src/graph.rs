@@ -441,6 +441,9 @@ where
         self.degree_matrix = None;
         self.adjacency_matrix = None;
         self.laplacian_matrix = None;
+        self.betweenness_count = None;
+        self.total_path_length = None;
+        self.num_paths = None;
     }
 
     /// Returns the set of unique vertices contained within the set of edges.
