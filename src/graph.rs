@@ -10,11 +10,6 @@ use nalgebra::{DMatrix, DVector, SymmetricEigen};
 
 use crate::edge::Edge;
 
-/// A vertex made up of connected indices
-pub type Vertex = Vec<usize>;
-/// An undirected graph, made up of vertices
-//pub type AGraph = Vec<Vec<usize>>;
-
 /// An undirected graph, made up of edges.
 #[derive(Clone, Debug)]
 pub struct Graph<T> {
@@ -479,7 +474,39 @@ where
         self.index = Some(index);
     }
 
-    fn adjacency_indices(&mut self) -> Vec<Vec<usize>> {
+    pub fn get_filtered_adjacency_indices(&self, nodes_to_keep: &Vec<T>) -> Vec<Vec<usize>> {
+        let num_nodes = nodes_to_keep.len();
+        let mut indices = Vec::new();
+        for _ in 0..num_nodes {
+            indices.push(Vec::new());
+        }
+
+        // For all our edges, check if the nodes are in our address list
+        // We use the value of the addresses to find the index
+        // From then on, it's all integer indices for us
+        for edge in self.edges.iter() {
+            let source = *edge.source();
+            let target = *edge.target();
+
+            let source_result = nodes_to_keep.iter().position(|&r| r == source);
+            if source_result.is_none() {
+                continue;
+            }
+
+            let target_result = nodes_to_keep.iter().position(|&r| r == target);
+            if target_result.is_none() {
+                continue;
+            }
+
+            let source_index = source_result.unwrap();
+            let target_index = target_result.unwrap();
+            indices[source_index].push(target_index);
+            indices[target_index].push(source_index);
+        }
+        indices
+    }
+
+    fn get_adjacency_indices(&mut self) -> Vec<Vec<usize>> {
         let mut indices: Vec<Vec<usize>> = Vec::new();
         let adjacency_matrix = self.adjacency_matrix();
 
@@ -496,7 +523,7 @@ where
         indices
     }
 
-    /// This method returns the closeness and betweenness for a given AGraph.
+    /// This method returns the closeness and betweenness for a given Graph.
     ///
     /// Closeness: for each node, find all shortest paths to all other nodes.
     /// Accumulate all path lengths, accumulate number of paths, and then compute
@@ -510,7 +537,7 @@ where
         if self.betweenness_count.is_some() {
             return;
         }
-        let indices: Vec<Vec<usize>> = self.adjacency_indices();
+        let indices: Vec<Vec<usize>> = self.get_adjacency_indices();
         let num_nodes = indices.len();
 
         let mut betweenness_count: Vec<u32> = vec![0; num_nodes];
@@ -656,7 +683,7 @@ where
         centralities
     }
 
-    /// This method returns the closeness for a given AGraph.
+    /// This method returns the closeness for a given Graph.
     ///
     /// Closeness: for each node, find all shortest paths to all other nodes.
     /// Accumulate all path lengths, accumulate number of paths, and then compute
@@ -731,7 +758,7 @@ mod tests {
 
     #[derive(Default, Clone, Deserialize)]
     pub struct Sample {
-        pub agraph: Vec<Vec<usize>>,
+        pub indices: Vec<Vec<usize>>,
     }
 
     // Creates a graph from a list of paths (that can overlap, the graph handles deduplication).
@@ -1383,24 +1410,24 @@ mod tests {
         assert_eq!(closeness, expected_closeness);
     }
 
-    // Helper function to create an AGraph from a json file.
+    // Helper function to create a sample from a json file.
     // The file will begin like this:
-    //   {"agraph":[[2630,3217,1608,1035,...
+    //   {"indices":[[2630,3217,1608,1035,...
     // and end like this:
     //   ...2316,1068,1238,704,2013]]}
     pub fn load_sample(filepath: &str) -> Vec<Vec<usize>> {
         let jstring = fs::read_to_string(filepath).unwrap();
         let sample: Sample = serde_json::from_str(&jstring).unwrap();
-        sample.agraph
+        sample.indices
     }
 
     #[test]
     fn betweenness_medium_graph() {
-        let agraph = load_sample("testdata/sample-2531.json");
+        let indices = load_sample("testdata/sample-2531.json");
         let mut graph = Graph::new();
 
         let mut n = 0;
-        for node in agraph {
+        for node in indices {
             for connection in node {
                 if connection > n {
                     graph.insert(Edge::new(n, connection));
@@ -1409,7 +1436,9 @@ mod tests {
             n += 1;
         }
 
-        let _betweenness_centrality = graph.betweenness_centrality();
+        let betweenness_centrality = graph.betweenness_centrality();
+        println!("betweenness_centrality: {betweenness_centrality:?}" );
+
 
     }
 
