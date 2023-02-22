@@ -477,6 +477,28 @@ where
         self.index = Some(index);
     }
 
+    /// This method returns a set connection indices for each node.
+    /// It a compact way to view the adjacency matrix, and therefore, is
+    /// used for the computation of betweenness and closeness centralities
+    pub fn get_adjacency_indices(&mut self) -> Vec<Vec<usize>> {
+        let mut indices: Vec<Vec<usize>> = Vec::new();
+        let adjacency_matrix = self.adjacency_matrix();
+
+        for m in 0..adjacency_matrix.nrows() {
+            let neighbors: Vec<usize> = adjacency_matrix
+                .row(m)
+                .iter()
+                .enumerate()
+                .filter(|(_n, &val)| val == 1.0)
+                .map(|(n, _)| n)
+                .collect();
+            indices.push(neighbors);
+        }
+        indices
+    }
+
+    /// This method also outputs an array of index vectors, although it is created differently.
+    /// It is currently used if filtering of nodes is required.
     pub fn get_filtered_adjacency_indices(&self, nodes_to_keep: &Vec<T>) -> Vec<Vec<usize>> {
         let num_nodes = nodes_to_keep.len();
         let mut indices = Vec::new();
@@ -509,24 +531,9 @@ where
         indices
     }
 
-    pub fn get_adjacency_indices(&mut self) -> Vec<Vec<usize>> {
-        let mut indices: Vec<Vec<usize>> = Vec::new();
-        let adjacency_matrix = self.adjacency_matrix();
 
-        for m in 0..adjacency_matrix.nrows() {
-            let neighbors: Vec<usize> = adjacency_matrix
-                .row(m)
-                .iter()
-                .enumerate()
-                .filter(|(_n, &val)| val == 1.0)
-                .map(|(n, _)| n)
-                .collect();
-            indices.push(neighbors);
-        }
-        indices
-    }
 
-    /// This method returns the closeness and betweenness for a given Graph.
+    /// This method computes the closeness and betweenness for a given Graph.
     ///
     /// Closeness: for each node, find all shortest paths to all other nodes.
     /// Accumulate all path lengths, accumulate number of paths, and then compute
