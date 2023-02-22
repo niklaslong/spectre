@@ -1459,7 +1459,6 @@ mod tests {
         sample
     }
 
-
     #[test]
     #[ignore = "takes a while to run"]
     fn loaded_sample_graph() {
@@ -1486,7 +1485,10 @@ mod tests {
         for node in &sample.indices {
             for connection in node {
                 if *connection > n {
-                    graph2.insert(Edge::new(&sample.node_ips[n], &sample.node_ips[*connection]));
+                    graph2.insert(Edge::new(
+                        &sample.node_ips[n],
+                        &sample.node_ips[*connection],
+                    ));
                 }
             }
             n += 1;
@@ -1516,7 +1518,6 @@ mod tests {
         let b1 = betweenness_centrality1.get(&1836).unwrap();
         let b2 = betweenness_centrality2.get("85.15.179.171").unwrap();
         assert_ne!(b1, b2);
-
     }
 
     #[test]
