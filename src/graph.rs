@@ -531,8 +531,6 @@ where
         indices
     }
 
-
-
     /// This method computes the closeness and betweenness for a given Graph.
     ///
     /// Closeness: for each node, find all shortest paths to all other nodes.
@@ -612,20 +610,20 @@ where
                                 // if not, we're still not necessarily disconnected for this i-j instance
                                 touched = true;
                                 // one of our starting nodes for next round
-                                let mut queue = path.clone();
-                                queue.push(*x);
+                                let mut newpath = path.clone();
+                                newpath.push(*x);
                                 if !search_state[*x] {
                                     // if this i-x is to be searched, then we're done for that pair
                                     // but we queue it first, in case other paths for same i-q are found
                                     found_for_this_pathlen.push(*x);
-                                    if queue.len() > 2 {
-                                        for i in 1..queue.len() - 1 {
-                                            let index = queue.get(i).unwrap();
+                                    if newpath.len() > 2 {
+                                        for i in 1..newpath.len() - 1 {
+                                            let index = newpath.get(i).unwrap();
                                             betweenness_count[*index] += 1;
                                         }
                                     }
                                 }
-                                queued_for_next_round.push(queue);
+                                queued_for_next_round.push(newpath);
                             }
                         }
                     }
@@ -633,9 +631,9 @@ where
                     // prep for next round, start fresh queue list
                     path_list.clear();
                     // load up the queue list, marked as visited
-                    for el in queued_for_next_round {
-                        let index = el[el.len() - 1];
-                        path_list.push(el.clone());
+                    for path in queued_for_next_round {
+                        let index = path[path.len() - 1];
+                        path_list.push(path.clone());
                         visited[index] = true;
                     }
                     // now we do bookkeeping for any found
