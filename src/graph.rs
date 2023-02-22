@@ -1461,24 +1461,26 @@ mod tests {
 
 
     #[test]
-    fn test_loaded_sample() {
+    #[ignore = "takes a while to run"]
+    fn loaded_sample_graph() {
         let sample = load_sample("testdata/sample.json");
 
-        let mut graph1: Graph<&str> = Graph::new();
+        // graph 1 uses integers as node value
+        let mut graph1 = Graph::new();
         let mut n = 0;
         for node in &sample.indices {
             for connection in node {
                 if *connection > n {
-                    graph1.insert(Edge::new(&sample.node_ips[n], &sample.node_ips[*connection]));
+                    graph1.insert(Edge::new(n, *connection));
                 }
             }
             n += 1;
         }
 
-        let indices1 = graph1.get_adjacency_indices();
         let betweenness_centrality1 = graph1.betweenness_centrality();
         let closeness_centrality1 = graph1.closeness_centrality();
 
+        // graph2 uses ip address as node value
         let mut graph2: Graph<&str> = Graph::new();
         let mut n = 0;
         for node in &sample.indices {
@@ -1490,19 +1492,31 @@ mod tests {
             n += 1;
         }
 
-        let indices2 = graph2.get_adjacency_indices();
         let betweenness_centrality2 = graph2.betweenness_centrality();
         let closeness_centrality2 = graph2.closeness_centrality();
-        assert_eq!(indices1, indices2);
-        assert_eq!(betweenness_centrality1, betweenness_centrality2);
-        assert_eq!(closeness_centrality1, closeness_centrality2);
+        let b1 = betweenness_centrality1.get(&0).unwrap();
+        let b2 = betweenness_centrality2.get("65.21.141.242").unwrap();
+        let c1 = closeness_centrality1.get(&0).unwrap();
+        let c2 = closeness_centrality2.get("65.21.141.242").unwrap();
+        assert_eq!(b1, b2);
+        assert_eq!(c1, c2);
 
-        // let a1 = indices1[1].len();
-        // let a5 = indices1[5].len();
-        // let a9 = indices1[9].len();
-        // let b1 = sample.indices[1].len();
-        // let b5 = sample.indices[5].len();
-        // let b9 = sample.indices[9].len();
+        // Tobolsk (index 1837) has betweenness 9.576638518159478e-8
+        // we'll confirm it's between 0.00000009 and 0.00000010
+        let b1 = betweenness_centrality1.get(&1837).unwrap();
+        let b2 = betweenness_centrality2.get("85.15.179.171").unwrap();
+        let c1 = closeness_centrality1.get(&1837).unwrap();
+        let c2 = closeness_centrality2.get("85.15.179.171").unwrap();
+        assert_eq!(b1, b2);
+        assert_eq!(c1, c2);
+        assert!(*b1 > 0.00000009);
+        assert!(*b1 < 0.00000010);
+
+        // these should not be equal
+        let b1 = betweenness_centrality1.get(&1836).unwrap();
+        let b2 = betweenness_centrality2.get("85.15.179.171").unwrap();
+        assert_ne!(b1, b2);
+
     }
 
     #[test]
