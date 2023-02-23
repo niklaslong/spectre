@@ -541,7 +541,7 @@ where
     /// in-between (i.e., not an end point), increment their betweenness value.
     /// Normalize the counts by dividing by the number of shortest paths found
     ///
-    pub fn betweenness_and_closeness_centrality(&mut self) {
+    fn betweenness_and_closeness_centrality(&mut self) {
         if self.betweenness_count.is_some() {
             return;
         }
