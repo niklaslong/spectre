@@ -10,11 +10,6 @@ use nalgebra::{DMatrix, DVector, SymmetricEigen};
 
 use crate::edge::Edge;
 
-/// A vertex made up of connected indices
-pub type Vertex = Vec<usize>;
-/// An undirected graph, made up of vertices
-pub type AGraph = Vec<Vec<usize>>;
-
 /// An undirected graph, made up of edges.
 #[derive(Clone, Debug)]
 pub struct Graph<T> {
@@ -32,6 +27,12 @@ pub struct Graph<T> {
     adjacency_matrix: Option<DMatrix<f64>>,
     /// Cache the laplacian matrix when possible.
     laplacian_matrix: Option<DMatrix<f64>>,
+    /// Cache the betweenness count when possible.
+    betweenness_count: Option<Vec<u32>>,
+    /// Cache the path lengths when possible.
+    total_path_length: Option<Vec<u32>>,
+    /// Cache the num paths when possible.
+    num_paths: Option<Vec<u32>>,
 }
 
 impl<T> Default for Graph<T>
@@ -65,6 +66,9 @@ where
             degree_matrix: None,
             adjacency_matrix: None,
             laplacian_matrix: None,
+            betweenness_count: None,
+            total_path_length: None,
+            num_paths: None,
         }
     }
 
@@ -437,6 +441,9 @@ where
         self.degree_matrix = None;
         self.adjacency_matrix = None;
         self.laplacian_matrix = None;
+        self.betweenness_count = None;
+        self.total_path_length = None;
+        self.num_paths = None;
     }
 
     /// Returns the set of unique vertices contained within the set of edges.
@@ -470,48 +477,61 @@ where
         self.index = Some(index);
     }
 
-    /// Creates an AGraph from a list of addresses (which may
-    /// be filtered) and the edges array.
-    ///
-    /// For each edge, if both nodes are in the address list,
-    /// a connection is created for each node.
-    ///
-    /// The AGraph is a node-centric view (required for closeness)
-    /// of the same information in the edges, while also possibly
-    /// handling only a subset of all nodes.
-    pub fn create_agraph(&self, addresses: &Vec<T>) -> AGraph {
-        let num_nodes = addresses.len();
-        let mut agraph: AGraph = AGraph::new();
+    /// This method returns a set connection indices for each node.
+    /// It a compact way to view the adjacency matrix, and therefore, is
+    /// used for the computation of betweenness and closeness centralities
+    pub fn get_adjacency_indices(&mut self) -> Vec<Vec<usize>> {
+        let mut indices: Vec<Vec<usize>> = Vec::new();
+        let adjacency_matrix = self.adjacency_matrix();
+
+        for m in 0..adjacency_matrix.nrows() {
+            let neighbors: Vec<usize> = adjacency_matrix
+                .row(m)
+                .iter()
+                .enumerate()
+                .filter(|(_n, &val)| val == 1.0)
+                .map(|(n, _)| n)
+                .collect();
+            indices.push(neighbors);
+        }
+        indices
+    }
+
+    /// This method also outputs an array of index vectors, although it is created differently.
+    /// It is currently used if filtering of nodes is required.
+    pub fn get_filtered_adjacency_indices(&self, nodes_to_keep: &Vec<T>) -> Vec<Vec<usize>> {
+        let num_nodes = nodes_to_keep.len();
+        let mut indices = Vec::new();
         for _ in 0..num_nodes {
-            agraph.push(Vertex::new());
+            indices.push(Vec::new());
         }
 
-        // For all our edges, check if the nodes are in our address list
-        // We use the value of the addresses to find the index
+        // For all our edges, check if the nodes are in our nodes_to_keep list
+        // We use the value of the node to find the index
         // From then on, it's all integer indices for us
         for edge in self.edges.iter() {
             let source = *edge.source();
             let target = *edge.target();
 
-            let source_result = addresses.iter().position(|&r| r == source);
+            let source_result = nodes_to_keep.iter().position(|&r| r == source);
             if source_result.is_none() {
                 continue;
             }
 
-            let target_result = addresses.iter().position(|&r| r == target);
+            let target_result = nodes_to_keep.iter().position(|&r| r == target);
             if target_result.is_none() {
                 continue;
             }
 
             let source_index = source_result.unwrap();
             let target_index = target_result.unwrap();
-            agraph[source_index].push(target_index);
-            agraph[target_index].push(source_index);
+            indices[source_index].push(target_index);
+            indices[target_index].push(source_index);
         }
-        agraph
+        indices
     }
 
-    /// This method returns the closeness and betweenness for a given AGraph.
+    /// This method computes the closeness and betweenness for a given Graph.
     ///
     /// Closeness: for each node, find all shortest paths to all other nodes.
     /// Accumulate all path lengths, accumulate number of paths, and then compute
@@ -521,11 +541,14 @@ where
     /// in-between (i.e., not an end point), increment their betweenness value.
     /// Normalize the counts by dividing by the number of shortest paths found
     ///
-    pub fn compute_betweenness_and_closeness(&self, agraph: &AGraph) -> (Vec<f64>, Vec<f64>) {
-        let num_nodes = agraph.len();
+    fn betweenness_and_closeness_centrality(&mut self) {
+        if self.betweenness_count.is_some() {
+            return;
+        }
+        let indices: Vec<Vec<usize>> = self.get_adjacency_indices();
+        let num_nodes = indices.len();
 
         let mut betweenness_count: Vec<u32> = vec![0; num_nodes];
-        let mut closeness: Vec<f64> = vec![0.0; num_nodes];
         let mut total_path_length: Vec<u32> = vec![0; num_nodes];
         let mut num_paths: Vec<u32> = vec![0; num_nodes];
 
@@ -564,8 +587,9 @@ where
                     *visited = x == i;
                 }
                 let mut pathlen: u32 = 1;
-                let mut queue_list = Vec::new();
-                queue_list.push(i);
+                let path = vec![i];
+                let mut path_list = Vec::new();
+                path_list.push(path);
 
                 while !done {
                     // for all shortest paths we find (and not necessily the i-j path we
@@ -577,33 +601,40 @@ where
                     // used as a starting node in the next round
                     let mut queued_for_next_round = Vec::new();
                     let mut touched: bool = false;
-                    for q in queue_list.as_slice() {
-                        let vertex = &agraph[*q];
+                    for path in path_list.as_slice() {
+                        let q = path[path.len() - 1];
+                        let vertex = &indices[q];
                         for x in vertex {
                             // Check if we've been here before
                             if !visited[*x] {
                                 // if not, we're still not necessarily disconnected for this i-j instance
                                 touched = true;
                                 // one of our starting nodes for next round
-                                queued_for_next_round.push(*x);
+                                let mut newpath = path.clone();
+                                newpath.push(*x);
                                 if !search_state[*x] {
                                     // if this i-x is to be searched, then we're done for that pair
                                     // but we queue it first, in case other paths for same i-q are found
                                     found_for_this_pathlen.push(*x);
-                                    if pathlen > 1 {
-                                        betweenness_count[*q] += 1;
+                                    if newpath.len() > 2 {
+                                        for i in 1..newpath.len() - 1 {
+                                            let index = newpath.get(i).unwrap();
+                                            betweenness_count[*index] += 1;
+                                        }
                                     }
                                 }
+                                queued_for_next_round.push(newpath);
                             }
                         }
                     }
 
                     // prep for next round, start fresh queue list
-                    queue_list.clear();
+                    path_list.clear();
                     // load up the queue list, marked as visited
-                    for x in queued_for_next_round {
-                        queue_list.push(x);
-                        visited[x] = true;
+                    for path in queued_for_next_round {
+                        let index = path[path.len() - 1];
+                        path_list.push(path.clone());
+                        visited[index] = true;
                     }
                     // now we do bookkeeping for any found
                     // shortest paths.
@@ -630,20 +661,59 @@ where
             }
         }
 
-        // compute the total number of shortest paths found, so
-        // we can normalize the betweenness values.
+        self.betweenness_count = Some(betweenness_count);
+        self.total_path_length = Some(total_path_length);
+        self.num_paths = Some(num_paths);
+    }
+
+    /// This method returns the betweenness for a given Graph.
+    ///
+    /// Betweenness: When a shortest path is found, for all nodes
+    /// in-between (i.e., not an end point), increment their betweenness value.
+    /// Normalize the counts by dividing by the number of shortest paths found
+    ///
+    pub fn betweenness_centrality(&mut self) -> HashMap<T, f64> {
+        self.betweenness_and_closeness_centrality();
+
+        let betweenness_count = self.betweenness_count.as_ref().unwrap();
+        let num_paths = self.num_paths.as_ref().unwrap();
+
         let mut total_num_paths: u32 = 0;
-        for num_paths in num_paths.iter().take(num_nodes) {
+        for num_paths in num_paths.iter() {
             total_num_paths += num_paths;
         }
 
-        let mut betweenness: Vec<f64> = vec![0.0; num_nodes];
-        for i in 0..num_nodes {
-            closeness[i] = total_path_length[i] as f64 / num_paths[i] as f64;
-            betweenness[i] = betweenness_count[i] as f64 / total_num_paths as f64;
+        let mut centralities = HashMap::new();
+        for (node, i) in self.index.as_ref().unwrap() {
+            let value = betweenness_count[*i] as f64 / total_num_paths as f64;
+            centralities.insert(*node, value);
+        }
+        centralities
+    }
+
+    /// This method returns the closeness for a given Graph.
+    ///
+    /// Closeness: for each node, find all shortest paths to all other nodes.
+    /// Accumulate all path lengths, accumulate number of paths, and then compute
+    /// average path length.
+    pub fn closeness_centrality(&mut self) -> HashMap<T, f64> {
+        self.betweenness_and_closeness_centrality();
+
+        let total_path_length = self.total_path_length.as_ref().unwrap();
+        let num_paths = self.num_paths.as_ref().unwrap();
+
+        let mut total_num_paths: u32 = 0;
+        for num_paths in num_paths.iter() {
+            total_num_paths += num_paths;
         }
 
-        (betweenness, closeness)
+        let mut centralities = HashMap::new();
+        for (n, node) in self.index.as_ref().unwrap().keys().enumerate() {
+            let value = total_path_length[n] as f64 / num_paths[n] as f64;
+            centralities.insert(*node, value);
+        }
+
+        centralities
     }
 }
 
@@ -687,16 +757,34 @@ fn sorted_eigenvalue_vector_pairs(
 
 #[cfg(test)]
 mod tests {
-    use std::{fs, time::Instant};
+    use std::fs;
 
     use nalgebra::dmatrix;
     use serde::Deserialize;
 
     use super::*;
 
-    #[derive(Default, Clone, Deserialize)]
-    pub struct AGraphSample {
-        pub agraph: AGraph,
+    #[derive(Default, Clone, Deserialize, Debug)]
+    pub struct Sample {
+        pub node_ips: Vec<String>,
+        pub indices: Vec<Vec<usize>>,
+    }
+
+    // Creates a graph from a list of paths (that can overlap, the graph handles deduplication).
+    macro_rules! graph {
+        ($($path:expr),*) => {{
+            let mut graph = Graph::new();
+
+            $(
+                let mut iter = $path.into_iter().peekable();
+                while let (Some(a), Some(b)) = (iter.next(), iter.peek()) {
+                    graph.insert(Edge::new(a, b));
+                }
+
+            )*
+
+            graph
+        }}
     }
 
     #[test]
@@ -1184,30 +1272,37 @@ mod tests {
 
     #[test]
     fn closeness_randomish_graph() {
-        let (s0, s1, s2, s3, s4, s5, s6) = ("0", "1", "2", "3", "4", "5", "6");
-        let addresses = vec!["0", "1", "2", "3", "4", "5", "6"];
-        let mut graph: Graph<&str> = Graph::new();
+        let mut graph: Graph<usize> = Graph::new();
         // this graph reproduces the image at:
         // https://www.sotr.blog/articles/breadth-first-search
-        graph.insert(Edge::new(s0, s3));
-        graph.insert(Edge::new(s0, s5));
-        graph.insert(Edge::new(s5, s1));
-        graph.insert(Edge::new(s1, s2));
-        graph.insert(Edge::new(s2, s4));
-        graph.insert(Edge::new(s2, s6));
-        graph.insert(Edge::new(s1, s3));
-        let agraph = graph.create_agraph(&addresses);
-        let (betweenness, closeness) = graph.compute_betweenness_and_closeness(&agraph);
+        graph.insert(Edge::new(0, 3));
+        graph.insert(Edge::new(0, 5));
+        graph.insert(Edge::new(5, 1));
+        graph.insert(Edge::new(1, 2));
+        graph.insert(Edge::new(2, 4));
+        graph.insert(Edge::new(2, 6));
+        graph.insert(Edge::new(1, 3));
+
+        let between_map = graph.betweenness_centrality();
+        let close_map = graph.closeness_centrality();
+        let mut betweenness: [f64; 7] = [0.0; 7];
+        let mut closeness: [f64; 7] = [0.0; 7];
+        for i in 0..7 {
+            betweenness[i] = *between_map.get(&i).unwrap();
+            closeness[i] = *close_map.get(&i).unwrap();
+        }
+
         let total_path_length = [28, 11, 13, 14, 19, 14, 19];
         let num_paths = [10, 7, 7, 7, 7, 7, 7];
         let total_num_paths: i32 = 52;
         let mut expected_closeness: [f64; 7] = [0.0; 7];
         let mut expected_betweenness: [f64; 7] = [0.0; 7];
-        let betweenness_count = [1, 6, 10, 1, 0, 1, 0];
+        let betweenness_count = [1, 13, 11, 4, 0, 4, 0];
         for i in 0..7 {
             expected_closeness[i] = total_path_length[i] as f64 / num_paths[i] as f64;
             expected_betweenness[i] = betweenness_count[i] as f64 / total_num_paths as f64;
         }
+
         assert_eq!(betweenness, expected_betweenness);
         assert_eq!(closeness, expected_closeness);
     }
@@ -1216,18 +1311,24 @@ mod tests {
     fn closeness_star_graph_a() {
         // 7-pointed star, 8 nodes
         // center is 0
-        let (s0, s1, s2, s3, s4, s5, s6, s7) = ("0", "1", "2", "3", "4", "5", "6", "7");
-        let addresses = vec!["0", "1", "2", "3", "4", "5", "6", "7"];
-        let mut graph: Graph<&str> = Graph::new();
-        graph.insert(Edge::new(s0, s1));
-        graph.insert(Edge::new(s0, s2));
-        graph.insert(Edge::new(s0, s3));
-        graph.insert(Edge::new(s0, s4));
-        graph.insert(Edge::new(s0, s5));
-        graph.insert(Edge::new(s0, s6));
-        graph.insert(Edge::new(s0, s7));
-        let agraph = graph.create_agraph(&addresses);
-        let (betweenness, closeness) = graph.compute_betweenness_and_closeness(&agraph);
+        let mut graph: Graph<usize> = Graph::new();
+        graph.insert(Edge::new(0, 1));
+        graph.insert(Edge::new(0, 2));
+        graph.insert(Edge::new(0, 3));
+        graph.insert(Edge::new(0, 4));
+        graph.insert(Edge::new(0, 5));
+        graph.insert(Edge::new(0, 6));
+        graph.insert(Edge::new(0, 7));
+
+        let between_map = graph.betweenness_centrality();
+        let close_map = graph.closeness_centrality();
+        let mut betweenness: [f64; 8] = [0.0; 8];
+        let mut closeness: [f64; 8] = [0.0; 8];
+        for i in 0..8 {
+            betweenness[i] = *between_map.get(&i).unwrap();
+            closeness[i] = *close_map.get(&i).unwrap();
+        }
+
         let total_path_length = [7, 13, 13, 13, 13, 13, 13, 13];
         let num_paths = [7, 7, 7, 7, 7, 7, 7, 7];
         let total_num_paths: i32 = 56;
@@ -1246,19 +1347,24 @@ mod tests {
     fn closeness_star_graph_b() {
         // 7-pointed star, 8 nodes
         // center is 7
-        let (s0, s1, s2, s3, s4, s5, s6, s7) = ("0", "1", "2", "3", "4", "5", "6", "7");
-        let addresses = vec!["0", "1", "2", "3", "4", "5", "6", "7"];
-        let mut graph: Graph<&str> = Graph::new();
-        graph.insert(Edge::new(s0, s7));
-        graph.insert(Edge::new(s1, s7));
-        graph.insert(Edge::new(s2, s7));
-        graph.insert(Edge::new(s3, s7));
-        graph.insert(Edge::new(s4, s7));
-        graph.insert(Edge::new(s5, s7));
-        graph.insert(Edge::new(s6, s7));
+        let mut graph: Graph<usize> = Graph::new();
+        graph.insert(Edge::new(0, 7));
+        graph.insert(Edge::new(1, 7));
+        graph.insert(Edge::new(2, 7));
+        graph.insert(Edge::new(3, 7));
+        graph.insert(Edge::new(4, 7));
+        graph.insert(Edge::new(5, 7));
+        graph.insert(Edge::new(6, 7));
 
-        let agraph = graph.create_agraph(&addresses);
-        let (betweenness, closeness) = graph.compute_betweenness_and_closeness(&agraph);
+        let between_map = graph.betweenness_centrality();
+        let close_map = graph.closeness_centrality();
+        let mut betweenness: [f64; 8] = [0.0; 8];
+        let mut closeness: [f64; 8] = [0.0; 8];
+        for i in 0..8 {
+            betweenness[i] = *between_map.get(&i).unwrap();
+            closeness[i] = *close_map.get(&i).unwrap();
+        }
+
         let total_path_length = [13, 13, 13, 13, 13, 13, 13, 7];
         let num_paths = [7, 7, 7, 7, 7, 7, 7, 7];
         let total_num_paths: i32 = 56;
@@ -1274,26 +1380,68 @@ mod tests {
     }
 
     #[test]
+    fn closeness_star_graph_c() {
+        // 7-pointed star, 8 nodes
+        // center is 7
+        let mut graph: Graph<usize> = Graph::new();
+        graph.insert(Edge::new(6, 3));
+        graph.insert(Edge::new(4, 3));
+        graph.insert(Edge::new(5, 3));
+        graph.insert(Edge::new(1, 3));
+        graph.insert(Edge::new(2, 3));
+        graph.insert(Edge::new(7, 3));
+        graph.insert(Edge::new(0, 3));
+
+        let between_map = graph.betweenness_centrality();
+        let close_map = graph.closeness_centrality();
+
+        let mut betweenness: [f64; 8] = [0.0; 8];
+        let mut closeness: [f64; 8] = [0.0; 8];
+        for i in 0..8 {
+            betweenness[i] = *between_map.get(&i).unwrap();
+            closeness[i] = *close_map.get(&i).unwrap();
+        }
+
+        let total_path_length = [13, 13, 13, 7, 13, 13, 13, 13];
+        let num_paths = [7, 7, 7, 7, 7, 7, 7, 7];
+        let total_num_paths: i32 = 56;
+        let mut expected_closeness: [f64; 8] = [0.0; 8];
+        let mut expected_betweenness: [f64; 8] = [0.0; 8];
+        let betweenness_count = [0, 0, 0, 21, 0, 0, 0, 0];
+        for i in 0..8 {
+            expected_closeness[i] = total_path_length[i] as f64 / num_paths[i] as f64;
+            expected_betweenness[i] = betweenness_count[i] as f64 / total_num_paths as f64;
+        }
+        assert_eq!(betweenness, expected_betweenness);
+        assert_eq!(closeness, expected_closeness);
+    }
+
+    #[test]
     fn closeness_disconnected_graph() {
         // 9 vertices
         // 4 verts, 0-3: square, all points connected
         // 5 verts, 4-8: star, with v4 in the center
-        let (s0, s1, s2, s3, s4, s5, s6, s7, s8) = ("0", "1", "2", "3", "4", "5", "6", "7", "8");
-        let addresses = vec!["0", "1", "2", "3", "4", "5", "6", "7", "8"];
-        let mut graph: Graph<&str> = Graph::new();
-        graph.insert(Edge::new(s0, s1));
-        graph.insert(Edge::new(s0, s2));
-        graph.insert(Edge::new(s0, s3));
-        graph.insert(Edge::new(s1, s2));
-        graph.insert(Edge::new(s1, s3));
-        graph.insert(Edge::new(s2, s3));
-        graph.insert(Edge::new(s4, s5));
-        graph.insert(Edge::new(s4, s6));
-        graph.insert(Edge::new(s4, s7));
-        graph.insert(Edge::new(s4, s8));
+        let mut graph: Graph<usize> = Graph::new();
+        graph.insert(Edge::new(0, 1));
+        graph.insert(Edge::new(0, 2));
+        graph.insert(Edge::new(0, 3));
+        graph.insert(Edge::new(1, 2));
+        graph.insert(Edge::new(1, 3));
+        graph.insert(Edge::new(2, 3));
+        graph.insert(Edge::new(4, 5));
+        graph.insert(Edge::new(4, 6));
+        graph.insert(Edge::new(4, 7));
+        graph.insert(Edge::new(4, 8));
 
-        let agraph = graph.create_agraph(&addresses);
-        let (betweenness, closeness) = graph.compute_betweenness_and_closeness(&agraph);
+        let between_map = graph.betweenness_centrality();
+        let close_map = graph.closeness_centrality();
+        let mut betweenness: [f64; 9] = [0.0; 9];
+        let mut closeness: [f64; 9] = [0.0; 9];
+        for i in 0..9 {
+            betweenness[i] = *between_map.get(&i).unwrap();
+            closeness[i] = *close_map.get(&i).unwrap();
+        }
+
         let total_path_length = [3, 3, 3, 3, 4, 7, 7, 7, 7];
         let num_paths = [3, 3, 3, 3, 4, 4, 4, 4, 4];
         let total_num_paths: i32 = 32;
@@ -1308,29 +1456,111 @@ mod tests {
         assert_eq!(closeness, expected_closeness);
     }
 
-    // Helper function to create an AGraph from a json file.
+    // Helper function to create a sample from a json file.
     // The file will begin like this:
-    //   {"agraph":[[2630,3217,1608,1035,...
+    //   {"indices":[[2630,3217,1608,1035,...
     // and end like this:
     //   ...2316,1068,1238,704,2013]]}
-    pub fn load_agraph(filepath: &str) -> AGraph {
+    pub fn load_sample(filepath: &str) -> Sample {
         let jstring = fs::read_to_string(filepath).unwrap();
-        let agraph_sample: AGraphSample = serde_json::from_str(&jstring).unwrap();
-        agraph_sample.agraph
+        let sample: Sample = serde_json::from_str(&jstring).unwrap();
+        sample
     }
 
     #[test]
     #[ignore = "takes a while to run"]
-    fn closeness_imported_sample_3226() {
-        let agraph = load_agraph("testdata/agraph-3226.json");
-        assert_eq!(agraph.len(), 3226);
-        let graph: Graph<usize> = Graph::new();
-        let start = Instant::now();
-        let (betweenness, closeness) = graph.compute_betweenness_and_closeness(&agraph);
-        let elapsed = start.elapsed();
-        println!("elapsed for 3226 nodes: {elapsed:?}");
-        assert!(elapsed.as_secs() < 45);
-        assert_eq!(agraph.len(), betweenness.len());
-        assert_eq!(agraph.len(), closeness.len());
+    fn loaded_sample_graph() {
+        let sample = load_sample("testdata/sample.json");
+
+        // graph 1 uses integers as node value
+        let mut graph1 = Graph::new();
+        let mut n = 0;
+        for node in &sample.indices {
+            for connection in node {
+                if *connection > n {
+                    graph1.insert(Edge::new(n, *connection));
+                }
+            }
+            n += 1;
+        }
+
+        let betweenness_centrality1 = graph1.betweenness_centrality();
+        let closeness_centrality1 = graph1.closeness_centrality();
+
+        // graph2 uses ip address as node value
+        let mut graph2: Graph<&str> = Graph::new();
+        let mut n = 0;
+        for node in &sample.indices {
+            for connection in node {
+                if *connection > n {
+                    graph2.insert(Edge::new(
+                        &sample.node_ips[n],
+                        &sample.node_ips[*connection],
+                    ));
+                }
+            }
+            n += 1;
+        }
+
+        let betweenness_centrality2 = graph2.betweenness_centrality();
+        let closeness_centrality2 = graph2.closeness_centrality();
+        let b1 = betweenness_centrality1.get(&0).unwrap();
+        let b2 = betweenness_centrality2.get("65.21.141.242").unwrap();
+        let c1 = closeness_centrality1.get(&0).unwrap();
+        let c2 = closeness_centrality2.get("65.21.141.242").unwrap();
+        assert_eq!(b1, b2);
+        assert_eq!(c1, c2);
+
+        // Index 1837 has betweenness 9.576638518159478e-8
+        // we'll confirm it's between 0.00000009 and 0.00000010
+        let b1 = betweenness_centrality1.get(&1837).unwrap();
+        let b2 = betweenness_centrality2.get("85.15.179.171").unwrap();
+        let c1 = closeness_centrality1.get(&1837).unwrap();
+        let c2 = closeness_centrality2.get("85.15.179.171").unwrap();
+        assert_eq!(b1, b2);
+        assert_eq!(c1, c2);
+        assert!(*b1 > 0.00000009);
+        assert!(*b1 < 0.00000010);
+
+        // these should not be equal
+        let b1 = betweenness_centrality1.get(&1836).unwrap();
+        let b2 = betweenness_centrality2.get("85.15.179.171").unwrap();
+        assert_ne!(b1, b2);
+    }
+
+    #[test]
+    fn betweenness_line_topology() {
+        let (a, b, c, d) = ("a", "b", "c", "d");
+        let mut graph = graph!([a, b, c, d]);
+
+        let betweenness_centrality = graph.betweenness_centrality();
+
+        assert_eq!(betweenness_centrality.get_key_value(a), Some((&a, &0.0)));
+        assert_eq!(
+            betweenness_centrality.get_key_value(b),
+            Some((&b, &(2.0 / 12.0)))
+        );
+        assert_eq!(
+            betweenness_centrality.get_key_value(c),
+            Some((&c, &(2.0 / 12.0)))
+        );
+        assert_eq!(betweenness_centrality.get_key_value(d), Some((&d, &0.0)));
+    }
+
+    #[test]
+    fn betweenness_star_topology() {
+        let (a, b, c, d, e) = ("a", "b", "c", "d", "e");
+        let mut graph = graph!([a, b, c], [e, b, d]);
+
+        let betweenness_centrality = graph.betweenness_centrality();
+
+        assert_eq!(betweenness_centrality.get_key_value(a), Some((&a, &0.0)));
+        assert_eq!(
+            betweenness_centrality.get_key_value(b),
+            Some((&b, &(6.0 / 20.0)))
+        );
+        assert_eq!(betweenness_centrality.get_key_value(c), Some((&c, &0.0)));
+        assert_eq!(betweenness_centrality.get_key_value(d), Some((&d, &0.0)));
+        assert_eq!(betweenness_centrality.get_key_value(e), Some((&e, &0.0)));
     }
 }
