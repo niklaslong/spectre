@@ -1511,7 +1511,7 @@ mod tests {
         assert_eq!(b1, b2);
         assert_eq!(c1, c2);
 
-        // Tobolsk (index 1837) has betweenness 9.576638518159478e-8
+        // Index 1837 has betweenness 9.576638518159478e-8
         // we'll confirm it's between 0.00000009 and 0.00000010
         let b1 = betweenness_centrality1.get(&1837).unwrap();
         let b2 = betweenness_centrality2.get("85.15.179.171").unwrap();
