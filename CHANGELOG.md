@@ -9,9 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.6.0]
 
+### Added
+
+- Methods to return the unfiltered or filtered adjacency lists have been added to the public API.
+- The `graph!` macro for testing purposes.
+
 ### Changed
 
-- Betweenness and closeness metrics have their own functions in the public API.
+- Betweenness and closeness metrics have their own methods in the public API.
 
 ### Removed
 
