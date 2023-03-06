@@ -520,6 +520,11 @@ where
                 }
             }
         }
+
+        for node in indices.iter_mut() {
+            node.shrink_to_fit();
+        }
+
         indices
     }
 
