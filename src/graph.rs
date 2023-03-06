@@ -505,7 +505,7 @@ where
         let mut node_map = HashMap::with_capacity(num_nodes);
         for n in 0..num_nodes {
             // make initial capacity 10% of total
-            indices.push(Vec::with_capacity(num_nodes/10));
+            indices.push(Vec::with_capacity(num_nodes / 10));
             node_map.insert(nodes_to_keep[n], n);
         }
 
