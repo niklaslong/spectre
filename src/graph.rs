@@ -501,32 +501,24 @@ where
     /// It is currently used if filtering of nodes is required.
     pub fn get_filtered_adjacency_indices(&self, nodes_to_keep: &Vec<T>) -> Vec<Vec<usize>> {
         let num_nodes = nodes_to_keep.len();
-        let mut indices = Vec::new();
-        for _ in 0..num_nodes {
-            indices.push(Vec::new());
+        let mut indices = Vec::with_capacity(num_nodes);
+        // let mut indices = Vec::new();
+        let mut node_map = HashMap::new();
+        for n in 0..num_nodes {
+            indices.push(Vec::with_capacity(num_nodes/10));
+            node_map.insert(nodes_to_keep[n], n);
         }
 
         // For all our edges, check if the nodes are in our nodes_to_keep list
         // We use the value of the node to find the index
         // From then on, it's all integer indices for us
         for edge in self.edges.iter() {
-            let source = *edge.source();
-            let target = *edge.target();
-
-            let source_result = nodes_to_keep.iter().position(|&r| r == source);
-            if source_result.is_none() {
-                continue;
+            if let Some(source_index) = node_map.get(edge.source()) {
+                if let Some(target_index) = node_map.get(edge.target()) {
+                    indices[*source_index].push(*target_index);
+                    indices[*target_index].push(*source_index);
+                }
             }
-
-            let target_result = nodes_to_keep.iter().position(|&r| r == target);
-            if target_result.is_none() {
-                continue;
-            }
-
-            let source_index = source_result.unwrap();
-            let target_index = target_result.unwrap();
-            indices[source_index].push(target_index);
-            indices[target_index].push(source_index);
         }
         indices
     }
