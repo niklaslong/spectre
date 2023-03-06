@@ -502,16 +502,16 @@ where
     pub fn get_filtered_adjacency_indices(&self, nodes_to_keep: &Vec<T>) -> Vec<Vec<usize>> {
         let num_nodes = nodes_to_keep.len();
         let mut indices = Vec::with_capacity(num_nodes);
-        // let mut indices = Vec::new();
-        let mut node_map = HashMap::new();
+        let mut node_map = HashMap::with_capacity(num_nodes);
         for n in 0..num_nodes {
+            // make initial capacity 10% of total
             indices.push(Vec::with_capacity(num_nodes/10));
             node_map.insert(nodes_to_keep[n], n);
         }
 
-        // For all our edges, check if the nodes are in our nodes_to_keep list
-        // We use the value of the node to find the index
-        // From then on, it's all integer indices for us
+        // For each edge, check if the source and target nodes
+        // are in our node HashMap.  If we've obtained both
+        // indices, insert into the corresponding connection list
         for edge in self.edges.iter() {
             if let Some(source_index) = node_map.get(edge.source()) {
                 if let Some(target_index) = node_map.get(edge.target()) {
