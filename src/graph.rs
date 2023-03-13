@@ -569,21 +569,33 @@ where
 
             // mark node i and all those before i as searched, this sets
             // up the search space for the next iterations of the loop.
-            // for search_state in search_state.iter_mut().take(i + 1) {
-            //     *search_state = true;
-            // }
-            for x in i..search_state.len() {
-                search_state[x] = true;
-            }            
-            for (j, search_state) in search_state
-                .iter_mut()
-                .enumerate()
-                .take(num_nodes)
-                .skip(i + 1)
-            {
-                search_list.push(j);
-                *search_state = false;
+            for search_state in search_state.iter_mut().take(i + 1) {
+                *search_state = true;
             }
+            // jkl this did not work
+            // for x in i..search_state.len() {
+            //     search_state[x] = true;
+            // }            
+
+
+
+            // AAA
+            // for (j, search_state) in search_state
+            //     .iter_mut()
+            //     .enumerate()
+            //     .take(num_nodes)
+            //     .skip(i + 1)
+            // {
+            //     search_list.push(j);
+            //     // *search_state = false;
+            // }
+
+            // BBB
+            for x in 0..i + 1 {
+                search_list.push(x);
+                // search_state[x] = false;
+            }
+
 
             while !search_list.is_empty() {
                 // 0. OUR MAIN SEARCH LOOP:  I and J
