@@ -580,21 +580,21 @@ where
 
 
             // AAA
-            // for (j, search_state) in search_state
-            //     .iter_mut()
-            //     .enumerate()
-            //     .take(num_nodes)
-            //     .skip(i + 1)
-            // {
-            //     search_list.push(j);
-            //     // *search_state = false;
-            // }
-
-            // BBB
-            for x in i + 1..num_nodes {
-                search_list.push(x);
-                // search_state[x] = false;
+            for (j, search_state) in search_state
+                .iter_mut()
+                .enumerate()
+                .take(num_nodes)
+                .skip(i + 1)
+            {
+                search_list.push(j);
+                // *search_state = false;
             }
+
+            // // BBB
+            // for x in i + 1..num_nodes {
+            //     search_list.push(x);
+            //     // search_state[x] = false;
+            // }
 
 
             while !search_list.is_empty() {
