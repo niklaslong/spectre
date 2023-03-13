@@ -564,7 +564,7 @@ where
             let mut search_state: Vec<bool> = vec![false; num_nodes];
             let mut search_list: Vec<usize> = Vec::new();
             let elapsed = start.elapsed();
-            println!("  node: {:?}, {:?}, delta {:}", i, elapsed, elapsed.as_secs_f64() - lastElapsed.as_secs_f64());
+            println!("  node: {:?}, {:?}, delta {:}", i, elapsed, elapsed.as_secs_f64() - last_elapsed.as_secs_f64());
             last_elapsed = elapsed;
 
             // mark node i and all those before i as searched, this sets
