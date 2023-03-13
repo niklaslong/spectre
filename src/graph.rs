@@ -591,7 +591,7 @@ where
             // }
 
             // BBB
-            for x in 0..i + 1 {
+            for x in i + 1..num_nodes {
                 search_list.push(x);
                 // search_state[x] = false;
             }
