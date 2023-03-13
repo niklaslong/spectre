@@ -4,6 +4,7 @@ use std::{
     collections::{BTreeMap, HashMap, HashSet},
     hash::Hash,
     ops::Sub,
+    time::Instant,
 };
 
 use nalgebra::{DMatrix, DVector, SymmetricEigen};
@@ -539,12 +540,17 @@ where
     /// Normalize the counts by dividing by the number of shortest paths found
     ///
     fn betweenness_and_closeness_centrality(&mut self) {
+        let start = Instant::now();
+        // let elapsed = start.elapsed();
+        println!("compute: A {:?}", start.elapsed());
+
         if self.betweenness_count.is_some() {
             return;
         }
         let indices: Vec<Vec<usize>> = self.get_adjacency_indices();
         let num_nodes = indices.len();
 
+        println!("compute: B {:?}", start.elapsed());
         let mut betweenness_count: Vec<u32> = vec![0; num_nodes];
         let mut total_path_length: Vec<u32> = vec![0; num_nodes];
         let mut num_paths: Vec<u32> = vec![0; num_nodes];
@@ -657,6 +663,7 @@ where
                 }
             }
         }
+        println!("compute: C {:?}", start.elapsed());
 
         self.betweenness_count = Some(betweenness_count);
         self.total_path_length = Some(total_path_length);
