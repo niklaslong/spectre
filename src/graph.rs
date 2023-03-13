@@ -562,7 +562,7 @@ where
             let mut visited: Vec<bool> = vec![false; num_nodes];
             let mut search_state: Vec<bool> = vec![false; num_nodes];
             let mut search_list: Vec<usize> = Vec::new();
-            println!("  node: {:?}", i);
+            println!("  node: {:?}, {:?}", i, start.elapsed());
 
             // mark node i and all those before i as searched, this sets
             // up the search space for the next iterations of the loop.
