@@ -562,16 +562,6 @@ where
             *search_state = true;
         }
 
-        // AAA
-        // for (j) in search_state
-        //     .iter_mut()
-        //     .enumerate()
-        //     .take(num_nodes)
-        //     .skip(index + 1)
-        // {
-        //     search_list.push(j);
-        //     // *search_state = false;
-        // }
         let mut search_list: Vec<usize> = Vec::with_capacity(num_nodes - index - 1);
         for j in index+1..num_nodes {
             search_list.push(j);
@@ -598,10 +588,10 @@ where
                 // are currently searching for), we store all of them here. And for one
                 // node (i-j, or i-p, i-q...) there may be muliple paths that are shortest
                 // and have same end points.
-                let mut found_for_this_pathlen: Vec<usize> = Vec::new();
+                let mut found_for_this_pathlen: Vec<usize> = Vec::with_capacity(100);
                 // this list store the next unvisited node, to be
                 // used as a starting node in the next round
-                let mut queued_for_next_round = Vec::new();
+                let mut queued_for_next_round = Vec::with_capacity(1000);
                 let mut touched: bool = false;
                 for path in path_list.as_slice() {
                     let q = path[path.len() - 1];
