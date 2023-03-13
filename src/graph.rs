@@ -558,11 +558,14 @@ where
         // the last searchable pair is:
         //     i = num_nodes - 2
         //     j = num_nodes - 1
+        let mut lastElapsed = start.elapsed();
         for i in 0..num_nodes - 1 {
             let mut visited: Vec<bool> = vec![false; num_nodes];
             let mut search_state: Vec<bool> = vec![false; num_nodes];
             let mut search_list: Vec<usize> = Vec::new();
-            println!("  node: {:?}, {:?}", i, start.elapsed());
+            let elapsed = start.elapsed();
+            println!("  node: {:?}, {:?}, delta {:}", i, elapsed, elapsed.as_secs_f64() - lastElapsed.as_secs_f64());
+            lastElapsed = elapsed;
 
             // mark node i and all those before i as searched, this sets
             // up the search space for the next iterations of the loop.
