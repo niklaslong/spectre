@@ -143,8 +143,8 @@ fn betweenness_for_node(
 }
 
 fn betweenness_task(
-   // s: &S,
-   indices: Vec<Vec<usize>>,
+   s: &S,
+//    indices: Vec<Vec<usize>>,
     c: Arc<Mutex<usize>>,
     // start_index: usize,
     // end_index: usize,
@@ -154,7 +154,7 @@ fn betweenness_task(
     // let elapsed = start.elapsed();
     // println!("compute A start {:?}: {:?}", start_index, start.elapsed());
 
-    // let indices = &s.indices;
+    let indices = &s.indices;
     let num_nodes = indices.len();
     let mut betweenness_count: Vec<u32> = vec![0; num_nodes];
     let mut total_path_length: Vec<u32> = vec![0; num_nodes];
@@ -165,7 +165,7 @@ fn betweenness_task(
         *counter += 1;
         drop(counter);
         if index < num_nodes - 1 {
-            betweenness_for_node(index, &indices, &mut betweenness_count, &mut total_path_length, &mut num_paths);
+            betweenness_for_node(index, indices, &mut betweenness_count, &mut total_path_length, &mut num_paths);
         } else {
             break;
         }
@@ -774,18 +774,19 @@ where
         //     start_indices.push(index);
 
         // }
-        // let s = Arc::new(S { indices });
+        let s = Arc::new(S { indices });
         let counter = Arc::new(Mutex::new(0 as usize));
         for t in 0..num_threads {
-            // let ss = s.clone();
+            let ss = s.clone();
             let cc = Arc::clone(&counter);
-            let ii = indices.clone();
+            // let ii = indices.clone();
             // let start_index = start_indices[t];
             // let end_index = start_indices[t+1];
             //if start_index < end_index {
                 let handle = thread::spawn(move || {
                     betweenness_task(
-                        ii,
+                        // ii,
+                        &ss,
                         cc,
                         // end_index,
                         // &start
