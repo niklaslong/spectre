@@ -6,7 +6,7 @@ use std::{
     ops::Sub,
     time::{Instant},
     thread,
-    sync::Arc,
+    sync::{Arc, Mutex},
 };
 
 use nalgebra::{DMatrix, DVector, SymmetricEigen};
@@ -33,6 +33,9 @@ fn betweenness_for_node(
     num_paths: &mut Vec<u32>,
 
 ) {
+    if index % 100 == 0 {
+        println!("node: {}", index);
+    }
     // let state = self.state.unwrap();
     // let indices = s.indices;
     let num_nodes = indices.len();
@@ -140,24 +143,37 @@ fn betweenness_for_node(
 }
 
 fn betweenness_task(
-    s: &S,
-    start_index: usize,
-    end_index: usize,
+   // s: &S,
+   indices: Vec<Vec<usize>>,
+    c: Arc<Mutex<usize>>,
+    // start_index: usize,
+    // end_index: usize,
 ) -> (Vec<u32>, Vec<u32>, Vec<u32>) {
     let start = Instant::now();
-    println!("task here, start_index {}, end_index {}", start_index, end_index);
+    // println!("task here, start_index {}, end_index {}", start_index, end_index);
     // let elapsed = start.elapsed();
-    println!("compute A start {:?}: {:?}", start_index, start.elapsed());
+    // println!("compute A start {:?}: {:?}", start_index, start.elapsed());
 
-    let indices = &s.indices;
+    // let indices = &s.indices;
     let num_nodes = indices.len();
     let mut betweenness_count: Vec<u32> = vec![0; num_nodes];
     let mut total_path_length: Vec<u32> = vec![0; num_nodes];
     let mut num_paths: Vec<u32> = vec![0; num_nodes];
-    for i in start_index..end_index {
-        betweenness_for_node(i, indices, &mut betweenness_count, &mut total_path_length, &mut num_paths);
+    while true {
+        let mut counter = c.lock().unwrap();
+        let index: usize = *counter;
+        *counter += 1;
+        drop(counter);
+        if index < num_nodes - 1 {
+            betweenness_for_node(index, &indices, &mut betweenness_count, &mut total_path_length, &mut num_paths);
+        } else {
+            break;
+        }
     }
-    println!("compute B start {:?}: {:?}", start_index, start.elapsed());
+    // for i in start_index..end_index {
+    //     betweenness_for_node(i, indices, &mut betweenness_count, &mut total_path_length, &mut num_paths);
+    // }
+    // println!("compute B start {:?}: {:?}", start_index, start.elapsed());
     (betweenness_count, total_path_length, num_paths)
 }
 
@@ -714,8 +730,8 @@ where
     ///
     fn betweenness_and_closeness_centrality(&mut self, num_threads: usize) {
         let start = Instant::now();
-        // let elapsed = start.elapsed();
-        println!("\ncompute: A {:?}", start.elapsed());
+        let elapsed = start.elapsed();
+        println!("\ncompute: num_threads {:?}", num_threads);
 
         if self.betweenness_count.is_some() {
             return;
@@ -745,35 +761,38 @@ where
         // doit(&mut state);
         let mut handles = Vec::new();
         // let num_threads = 2;
-        let mut start_indices = Vec::new();
-        println!("num_nodes {}", num_nodes);
-        for t in 0..num_threads+1 {
-            let part = (num_threads - t) as f64 / num_threads as f64;
-            let section = 1.0 - part.powf(1.0/1.6);
-            let mut index = (section * num_nodes as f64).floor() as usize;
-            if index > num_nodes - 1 {
-                index = num_nodes - 1;
-            }
-            println!("t:{t}, part:{part}, section:{section}, index:{index}");
-            start_indices.push(index);
+        // let mut start_indices = Vec::new();
+        // println!("num_nodes {}", num_nodes);
+        // for t in 0..num_threads+1 {
+        //     let part = (num_threads - t) as f64 / num_threads as f64;
+        //     let section = 1.0 - part.powf(1.0/1.6);
+        //     let mut index = (section * num_nodes as f64).floor() as usize;
+        //     if index > num_nodes - 1 {
+        //         index = num_nodes - 1;
+        //     }
+        //     println!("t:{t}, part:{part}, section:{section}, index:{index}");
+        //     start_indices.push(index);
 
-        }
-        let s = Arc::new(S { indices });
-       for t in 0..num_threads {
-            let ss = s.clone();
-            let start_index = start_indices[t];
-            let end_index = start_indices[t+1];
-            if start_index < end_index {
+        // }
+        // let s = Arc::new(S { indices });
+        let counter = Arc::new(Mutex::new(0 as usize));
+        for t in 0..num_threads {
+            // let ss = s.clone();
+            let cc = Arc::clone(&counter);
+            let ii = indices.clone();
+            // let start_index = start_indices[t];
+            // let end_index = start_indices[t+1];
+            //if start_index < end_index {
                 let handle = thread::spawn(move || {
                     betweenness_task(
-                        &ss,
-                        start_index,
-                        end_index,
+                        ii,
+                        cc,
+                        // end_index,
                         // &start
                     )
                 });    
                 handles.push(handle);
-            }
+            // }
         }
         //let h = handles[0];
         for h in handles {
@@ -1615,8 +1634,19 @@ mod tests {
             }
             n += 1;
         }
+        // _ = graph1.betweenness_centrality(1);
+        // graph1.clear_cache();
+        // _ = graph1.betweenness_centrality(2);
+        // graph1.clear_cache();
+        _ = graph1.betweenness_centrality(3);
+        graph1.clear_cache();
+        _ = graph1.betweenness_centrality(4);
+        graph1.clear_cache();
+        _ = graph1.betweenness_centrality(5);
+        graph1.clear_cache();
+        let betweenness_centrality1 = graph1.betweenness_centrality(6);
 
-        let betweenness_centrality1 = graph1.betweenness_centrality(3);
+        // let betweenness_centrality1 = graph1.betweenness_centrality(3);
         let closeness_centrality1 = graph1.closeness_centrality(3);
 
         // graph2 uses ip address as node value
