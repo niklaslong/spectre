@@ -6,12 +6,17 @@ use std::{
     ops::Sub,
     time::{Instant},
     thread,
+    sync::Arc,
 };
 
 use nalgebra::{DMatrix, DVector, SymmetricEigen};
 
 use crate::edge::Edge;
 
+
+struct S {
+    indices: Vec<Vec<usize>>,
+}
 
 //     pub indices: &Vec<Vec<usize>>,
 //     // pub start: Instant,
@@ -26,14 +31,14 @@ fn betweenness_for_node(
     betweenness_count: &mut Vec<u32>,
     total_path_length: &mut Vec<u32>,
     num_paths: &mut Vec<u32>,
-    start: &Instant,
 
 ) {
     // let state = self.state.unwrap();
+    // let indices = s.indices;
     let num_nodes = indices.len();
     let mut visited: Vec<bool> = vec![false; num_nodes];
     let mut search_state: Vec<bool> = vec![false; num_nodes];
-    let _elapsed = start.elapsed();
+    // let _elapsed = start.elapsed();
     // println!("  node: {:?}, {:?}, delta {:}", index, elapsed, elapsed.as_secs_f64() - state.last_elapsed.as_secs_f64());
     // last_elapsed = elapsed;
 
@@ -135,69 +140,29 @@ fn betweenness_for_node(
 }
 
 fn betweenness_task(
-    indices: &Vec<Vec<usize>>,
-    // betweenness_count: &mut Vec<u32>,
-    // total_path_length: &mut Vec<u32>,
-    // num_paths: &mut Vec<u32>,
-    start: &Instant,
+    s: &S,
+    start_index: usize,
+    end_index: usize,
 ) -> (Vec<u32>, Vec<u32>, Vec<u32>) {
-    // println!("task here, next index {}", next_index);
+    let start = Instant::now();
+    println!("task here, start_index {}, end_index {}", start_index, end_index);
+    // let elapsed = start.elapsed();
+    println!("compute A start {:?}: {:?}", start_index, start.elapsed());
+
+    let indices = &s.indices;
     let num_nodes = indices.len();
     let mut betweenness_count: Vec<u32> = vec![0; num_nodes];
     let mut total_path_length: Vec<u32> = vec![0; num_nodes];
     let mut num_paths: Vec<u32> = vec![0; num_nodes];
-    for i in 0..num_nodes - 1 {
-        betweenness_for_node(i, indices, &mut betweenness_count, &mut total_path_length, &mut num_paths, start);
+    for i in start_index..end_index {
+        betweenness_for_node(i, indices, &mut betweenness_count, &mut total_path_length, &mut num_paths);
     }
+    println!("compute B start {:?}: {:?}", start_index, start.elapsed());
     (betweenness_count, total_path_length, num_paths)
 }
 
 
 
-// #[derive(Clone, Debug)]
-// pub struct State {
-//     pub indices: &Vec<Vec<usize>>,
-//     // pub start: Instant,
-//     // pub last_elapsed: Duration,
-//     pub betweenness_count: &Vec<u32>,
-//     pub total_path_length: &Vec<u32>,
-//     pub num_paths: &Vec<u32>,
-//     pub next_index: usize,
-// }
-
-
-// fn dummy(state: &mut State) {
-//     println!("i am a dummy, next_index {}", state.next_index);
-// }
-
-// fn doit(state: &mut State) {
-
-//     let mut handles = Vec::new();
-//     let num_threads = 4;
-//     for _ in 0..num_threads {
-
-//         let handle = thread::spawn( || {
-//             // self.betweenness_task(&mut state);
-//             // dummy(&mut state);
-//             dummy(state);
-//             let _h = 8;
-//             // for i in 1..10 {
-//             //     println!("hi number {} from the spawned thread!", i);
-//             //     thread::sleep(Duration::from_millis(1));
-//             // }
-//         });
-//         handles.push(handle);
-//     }
-//     for h in handles {
-//         let r = h.join().unwrap();
-//         println!("thread done = {:?}", r);
-//     }
-//     // for i in 0..num_nodes - 1 {
-//     //     self.betweenness_for_node(i, &mut state);
-
-//     // }
-//     // println!("compute: C {:?}", start.elapsed());
-// }
 
 /// An undirected graph, made up of edges.
 #[derive(Clone, Debug)]
@@ -736,119 +701,6 @@ where
     }
     
 
-    // fn betweenness_for_node(&mut self, index: usize) {
-    //     // let state = self.state.unwrap();
-    //     let num_nodes = self.indices.len();
-    //     let mut visited: Vec<bool> = vec![false; num_nodes];
-    //     let mut search_state: Vec<bool> = vec![false; num_nodes];
-    //     let _elapsed = self.start.elapsed();
-    //     // println!("  node: {:?}, {:?}, delta {:}", index, elapsed, elapsed.as_secs_f64() - state.last_elapsed.as_secs_f64());
-    //     // last_elapsed = elapsed;
-    
-    //     // mark node i and all those before i as searched, this sets
-    //     // up the search space for the next iterations of the loop.
-    //     for search_state in search_state.iter_mut().take(index + 1) {
-    //         *search_state = true;
-    //     }
-    
-    //     let mut search_list: Vec<usize> = Vec::with_capacity(num_nodes - index - 1);
-    //     for j in index+1..num_nodes {
-    //         search_list.push(j);
-    //     }
-    
-    //     while !search_list.is_empty() {
-    //         // 0. OUR MAIN SEARCH LOOP:  I and J
-    //         // 1. we search for path between i and j.  We're done when we find j
-    //         // 2. any short paths we find along the way, they get handled and removed from search list
-    //         // 3. along the way, we appropriately mark any between nodes
-    //         // 4. we also determine if no path exists (disconnected graph case)
-    //         let mut done = false;
-    //         let j = search_list[0];
-    //         for (x, visited) in visited.iter_mut().enumerate().take(num_nodes) {
-    //             *visited = x == index;
-    //         }
-    //         let mut pathlen: u32 = 1;
-    //         let path = vec![index];
-    //         let mut path_list = Vec::new();
-    //         path_list.push(path);
-    
-    //         while !done {
-    //             // for all shortest paths we find (and not necessily the i-j path we
-    //             // are currently searching for), we store all of them here. And for one
-    //             // node (i-j, or i-p, i-q...) there may be muliple paths that are shortest
-    //             // and have same end points.
-    //             let mut found_for_this_pathlen: Vec<usize> = Vec::new();
-    //             // this list store the next unvisited node, to be
-    //             // used as a starting node in the next round
-    //             let mut queued_for_next_round = Vec::new();
-    //             let mut touched: bool = false;
-    //             for path in path_list.as_slice() {
-    //                 let q = path[path.len() - 1];
-    //                 let vertex = self.indices[q];
-    //                 for x in vertex {
-    //                     // Check if we've been here before
-    //                     if !visited[x] {
-    //                         // if not, we're still not necessarily disconnected for this i-j instance
-    //                         touched = true;
-    //                         // one of our starting nodes for next round
-    //                         let mut newpath = path.clone();
-    //                         newpath.push(x);
-    //                         if !search_state[x] {
-    //                             // if this i-x is to be searched, then we're done for that pair
-    //                             // but we queue it first, in case other paths for same i-q are found
-    //                             found_for_this_pathlen.push(x);
-    //                             if newpath.len() > 2 {
-    //                                 for i in 1..newpath.len() - 1 {
-    //                                     let index = newpath.get(i).unwrap();
-    //                                     self.betweennesscount[*index] += 1;
-    //                                 }
-    //                             }
-    //                         }
-    //                         queued_for_next_round.push(newpath);
-    //                     }
-    //                 }
-    //             }
-    
-    //             // prep for next round, start fresh queue list
-    //             path_list.clear();
-    //             // load up the queue list, marked as visited
-    //             for path in queued_for_next_round {
-    //                 let index = path[path.len() - 1];
-    //                 path_list.push(path.clone());
-    //                 visited[index] = true;
-    //             }
-    //             // now we do bookkeeping for any found
-    //             // shortest paths.
-    //             for f in found_for_this_pathlen {
-    //                 self.numpaths[f] += 1;
-    //                 self.totalpathlength[f] += pathlen;
-    //                 self.numpaths[index] += 1;
-    //                 self.totalpathlength[index] += pathlen;
-    //                 search_list.retain(|&x| x != f);
-    //                 search_state[f] = true;
-    //                 if f == j {
-    //                     done = true;
-    //                 }
-    //             }
-    //             // If no connection exists, stop searching for it.
-    //             if !touched {
-    //                 search_list.retain(|&x| x != j);
-    //                 search_state[j] = true;
-    //                 done = true
-    //             }
-    
-    //             pathlen += 1;
-    //         }
-    //     }
-    // }
-    
-    // fn betweenness_task(&mut self) {
-    //     // println!("task here, next index {}", next_index);
-    // }
-    
-    
-
-
 
     /// This method computes the closeness and betweenness for a given Graph.
     ///
@@ -860,10 +712,10 @@ where
     /// in-between (i.e., not an end point), increment their betweenness value.
     /// Normalize the counts by dividing by the number of shortest paths found
     ///
-    fn betweenness_and_closeness_centrality(&mut self) {
+    fn betweenness_and_closeness_centrality(&mut self, num_threads: usize) {
         let start = Instant::now();
         // let elapsed = start.elapsed();
-        println!("compute: A {:?}", start.elapsed());
+        println!("\ncompute: A {:?}", start.elapsed());
 
         if self.betweenness_count.is_some() {
             return;
@@ -891,48 +743,60 @@ where
         // };
 
         // doit(&mut state);
-        //let mut handles = Vec::new();
-        let num_threads = 4;
-        //for _ in 0..num_threads {
+        let mut handles = Vec::new();
+        // let num_threads = 2;
+        let mut start_indices = Vec::new();
+        println!("num_nodes {}", num_nodes);
+        for t in 0..num_threads+1 {
+            let part = (num_threads - t) as f64 / num_threads as f64;
+            let section = 1.0 - part.powf(1.0/1.6);
+            let mut index = (section * num_nodes as f64).floor() as usize;
+            if index > num_nodes - 1 {
+                index = num_nodes - 1;
+            }
+            println!("t:{t}, part:{part}, section:{section}, index:{index}");
+            start_indices.push(index);
 
-            let h = thread::spawn(move || {
-                // self.betweenness_task(&mut state);
-                // dummy(&mut state);
-                //self.betweenness_task();
-                // let (betweenness_count, total_path_length, num_paths) =
-                betweenness_task(
-                    &indices,
-                    // &mut betweenness_count,
-                    // &mut total_path_length,
-                    // &mut num_paths,
-                    &start
-  
-                )
-                //let _h = 8;
-                // for i in 1..10 {
-                //     println!("hi number {} from the spawned thread!", i);
-                //     thread::sleep(Duration::from_millis(1));
-                // }
-            });
-            //handles.push(handle);
-        //}
+        }
+        let s = Arc::new(S { indices });
+       for t in 0..num_threads {
+            let ss = s.clone();
+            let start_index = start_indices[t];
+            let end_index = start_indices[t+1];
+            if start_index < end_index {
+                let handle = thread::spawn(move || {
+                    betweenness_task(
+                        &ss,
+                        start_index,
+                        end_index,
+                        // &start
+                    )
+                });    
+                handles.push(handle);
+            }
+        }
         //let h = handles[0];
-        //for h in handles {
+        for h in handles {
             let (b, t, n) = h.join().unwrap();
-            // println!("thread done = {:?}", r);
-          //}
+            for i in 0..num_nodes {
+                betweenness_count[i] += b[i];
+                total_path_length[i] += t[i];
+                num_paths[i] += n[i];
+            }
+            println!("thread done ");
+        }
         // for i in 0..num_nodes - 1 {
         //     self.betweenness_for_node(i, &mut state);
 
         // }
         println!("compute: C {:?}", start.elapsed());
 
-        // self.betweenness_count = Some(betweenness_count);
-        // self.total_path_length = Some(total_path_length);
-        // self.num_paths = Some(num_paths);
-        self.betweenness_count = Some(b);
-        self.total_path_length = Some(t);
-        self.num_paths = Some(n);
+        self.betweenness_count = Some(betweenness_count);
+        self.total_path_length = Some(total_path_length);
+        self.num_paths = Some(num_paths);
+        // self.betweenness_count = Some(b);
+        // self.total_path_length = Some(t);
+        // self.num_paths = Some(n);
     }
 
     /// This method returns the betweenness for a given Graph.
@@ -941,8 +805,8 @@ where
     /// in-between (i.e., not an end point), increment their betweenness value.
     /// Normalize the counts by dividing by the number of shortest paths found
     ///
-    pub fn betweenness_centrality(&mut self) -> HashMap<T, f64> {
-        self.betweenness_and_closeness_centrality();
+    pub fn betweenness_centrality(&mut self, num_threads: usize) -> HashMap<T, f64> {
+        self.betweenness_and_closeness_centrality(num_threads);
 
         let betweenness_count = self.betweenness_count.as_ref().unwrap();
         let num_paths = self.num_paths.as_ref().unwrap();
@@ -965,8 +829,8 @@ where
     /// Closeness: for each node, find all shortest paths to all other nodes.
     /// Accumulate all path lengths, accumulate number of paths, and then compute
     /// average path length.
-    pub fn closeness_centrality(&mut self) -> HashMap<T, f64> {
-        self.betweenness_and_closeness_centrality();
+    pub fn closeness_centrality(&mut self, num_threads: usize) -> HashMap<T, f64> {
+        self.betweenness_and_closeness_centrality(num_threads);
 
         let total_path_length = self.total_path_length.as_ref().unwrap();
         let num_paths = self.num_paths.as_ref().unwrap();
@@ -1552,8 +1416,8 @@ mod tests {
         graph.insert(Edge::new(2, 6));
         graph.insert(Edge::new(1, 3));
 
-        let between_map = graph.betweenness_centrality();
-        let close_map = graph.closeness_centrality();
+        let between_map = graph.betweenness_centrality(2);
+        let close_map = graph.closeness_centrality(2);
         let mut betweenness: [f64; 7] = [0.0; 7];
         let mut closeness: [f64; 7] = [0.0; 7];
         for i in 0..7 {
@@ -1589,8 +1453,8 @@ mod tests {
         graph.insert(Edge::new(0, 6));
         graph.insert(Edge::new(0, 7));
 
-        let between_map = graph.betweenness_centrality();
-        let close_map = graph.closeness_centrality();
+        let between_map = graph.betweenness_centrality(2);
+        let close_map = graph.closeness_centrality(2);
         let mut betweenness: [f64; 8] = [0.0; 8];
         let mut closeness: [f64; 8] = [0.0; 8];
         for i in 0..8 {
@@ -1625,8 +1489,8 @@ mod tests {
         graph.insert(Edge::new(5, 7));
         graph.insert(Edge::new(6, 7));
 
-        let between_map = graph.betweenness_centrality();
-        let close_map = graph.closeness_centrality();
+        let between_map = graph.betweenness_centrality(2);
+        let close_map = graph.closeness_centrality(2);
         let mut betweenness: [f64; 8] = [0.0; 8];
         let mut closeness: [f64; 8] = [0.0; 8];
         for i in 0..8 {
@@ -1661,8 +1525,8 @@ mod tests {
         graph.insert(Edge::new(7, 3));
         graph.insert(Edge::new(0, 3));
 
-        let between_map = graph.betweenness_centrality();
-        let close_map = graph.closeness_centrality();
+        let between_map = graph.betweenness_centrality(2);
+        let close_map = graph.closeness_centrality(2);
 
         let mut betweenness: [f64; 8] = [0.0; 8];
         let mut closeness: [f64; 8] = [0.0; 8];
@@ -1702,8 +1566,8 @@ mod tests {
         graph.insert(Edge::new(4, 7));
         graph.insert(Edge::new(4, 8));
 
-        let between_map = graph.betweenness_centrality();
-        let close_map = graph.closeness_centrality();
+        let between_map = graph.betweenness_centrality(2);
+        let close_map = graph.closeness_centrality(2);
         let mut betweenness: [f64; 9] = [0.0; 9];
         let mut closeness: [f64; 9] = [0.0; 9];
         for i in 0..9 {
@@ -1737,7 +1601,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "takes a while to run"]
     fn loaded_sample_graph() {
         let sample = load_sample("testdata/sample.json");
 
@@ -1753,8 +1616,8 @@ mod tests {
             n += 1;
         }
 
-        let betweenness_centrality1 = graph1.betweenness_centrality();
-        let closeness_centrality1 = graph1.closeness_centrality();
+        let betweenness_centrality1 = graph1.betweenness_centrality(3);
+        let closeness_centrality1 = graph1.closeness_centrality(3);
 
         // graph2 uses ip address as node value
         let mut graph2: Graph<&str> = Graph::new();
@@ -1771,8 +1634,8 @@ mod tests {
             n += 1;
         }
 
-        let betweenness_centrality2 = graph2.betweenness_centrality();
-        let closeness_centrality2 = graph2.closeness_centrality();
+        let betweenness_centrality2 = graph2.betweenness_centrality(5);
+        let closeness_centrality2 = graph2.closeness_centrality(5);
         let b1 = betweenness_centrality1.get(&0).unwrap();
         let b2 = betweenness_centrality2.get("65.21.141.242").unwrap();
         let c1 = closeness_centrality1.get(&0).unwrap();
@@ -1802,7 +1665,7 @@ mod tests {
         let (a, b, c, d) = ("a", "b", "c", "d");
         let mut graph = graph!([a, b, c, d]);
 
-        let betweenness_centrality = graph.betweenness_centrality();
+        let betweenness_centrality = graph.betweenness_centrality(2);
 
         assert_eq!(betweenness_centrality.get_key_value(a), Some((&a, &0.0)));
         assert_eq!(
@@ -1821,7 +1684,7 @@ mod tests {
         let (a, b, c, d, e) = ("a", "b", "c", "d", "e");
         let mut graph = graph!([a, b, c], [e, b, d]);
 
-        let betweenness_centrality = graph.betweenness_centrality();
+        let betweenness_centrality = graph.betweenness_centrality(2);
 
         assert_eq!(betweenness_centrality.get_key_value(a), Some((&a, &0.0)));
         assert_eq!(
