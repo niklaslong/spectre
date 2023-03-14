@@ -33,9 +33,6 @@ fn betweenness_for_node(
     num_paths: &mut Vec<u32>,
 
 ) {
-    if index % 100 == 0 {
-        println!("node: {}", index);
-    }
     // let state = self.state.unwrap();
     // let indices = s.indices;
     let num_nodes = indices.len();
@@ -165,6 +162,9 @@ fn betweenness_task(
         *counter += 1;
         drop(counter);
         if index < num_nodes - 1 {
+            if index % 100 == 0 {
+                println!("node: {}, time: {:?}", index, start.elapsed());
+            }
             betweenness_for_node(index, indices, &mut betweenness_count, &mut total_path_length, &mut num_paths);
         } else {
             break;
