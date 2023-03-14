@@ -1,11 +1,11 @@
 //! A module for working with graphs.
 
-use core::num;
 use std::{
     collections::{BTreeMap, HashMap, HashSet},
     hash::Hash,
     ops::Sub,
-    time::{Instant, Duration},
+    time::{Instant},
+    thread,
 };
 
 use nalgebra::{DMatrix, DVector, SymmetricEigen};
@@ -13,15 +13,191 @@ use nalgebra::{DMatrix, DVector, SymmetricEigen};
 use crate::edge::Edge;
 
 
-#[derive(Clone, Debug)]
-pub struct State {
-    pub indices: Vec<Vec<usize>>,
-    pub start: Instant,
-    pub last_elapsed: Duration,
-    pub betweenness_count: Vec<u32>,
-    pub total_path_length: Vec<u32>,
-    pub num_paths: Vec<u32>,
+//     pub indices: &Vec<Vec<usize>>,
+//     // pub start: Instant,
+//     // pub last_elapsed: Duration,
+//     pub betweenness_count: &Vec<u32>,
+//     pub total_path_length: &Vec<u32>,
+//     pub num_paths: &Vec<u32>,
+//     pub next_index: usize,
+fn betweenness_for_node( 
+    index: usize, 
+    indices: &Vec<Vec<usize>>,
+    betweenness_count: &mut Vec<u32>,
+    total_path_length: &mut Vec<u32>,
+    num_paths: &mut Vec<u32>,
+    start: &Instant,
+
+) {
+    // let state = self.state.unwrap();
+    let num_nodes = indices.len();
+    let mut visited: Vec<bool> = vec![false; num_nodes];
+    let mut search_state: Vec<bool> = vec![false; num_nodes];
+    let _elapsed = start.elapsed();
+    // println!("  node: {:?}, {:?}, delta {:}", index, elapsed, elapsed.as_secs_f64() - state.last_elapsed.as_secs_f64());
+    // last_elapsed = elapsed;
+
+    // mark node i and all those before i as searched, this sets
+    // up the search space for the next iterations of the loop.
+    for search_state in search_state.iter_mut().take(index + 1) {
+        *search_state = true;
+    }
+
+    let mut search_list: Vec<usize> = Vec::with_capacity(num_nodes - index - 1);
+    for j in index+1..num_nodes {
+        search_list.push(j);
+    }
+
+    while !search_list.is_empty() {
+        // 0. OUR MAIN SEARCH LOOP:  I and J
+        // 1. we search for path between i and j.  We're done when we find j
+        // 2. any short paths we find along the way, they get handled and removed from search list
+        // 3. along the way, we appropriately mark any between nodes
+        // 4. we also determine if no path exists (disconnected graph case)
+        let mut done = false;
+        let j = search_list[0];
+        for (x, visited) in visited.iter_mut().enumerate().take(num_nodes) {
+            *visited = x == index;
+        }
+        let mut pathlen: u32 = 1;
+        let path = vec![index];
+        let mut path_list = Vec::new();
+        path_list.push(path);
+
+        while !done {
+            // for all shortest paths we find (and not necessily the i-j path we
+            // are currently searching for), we store all of them here. And for one
+            // node (i-j, or i-p, i-q...) there may be muliple paths that are shortest
+            // and have same end points.
+            let mut found_for_this_pathlen: Vec<usize> = Vec::new();
+            // this list store the next unvisited node, to be
+            // used as a starting node in the next round
+            let mut queued_for_next_round = Vec::new();
+            let mut touched: bool = false;
+            for path in path_list.as_slice() {
+                let q = path[path.len() - 1];
+                let vertex = &indices[q];
+                for x in vertex {
+                    // Check if we've been here before
+                    if !visited[*x] {
+                        // if not, we're still not necessarily disconnected for this i-j instance
+                        touched = true;
+                        // one of our starting nodes for next round
+                        let mut newpath = path.clone();
+                        newpath.push(*x);
+                        if !search_state[*x] {
+                            // if this i-x is to be searched, then we're done for that pair
+                            // but we queue it first, in case other paths for same i-q are found
+                            found_for_this_pathlen.push(*x);
+                            if newpath.len() > 2 {
+                                for i in 1..newpath.len() - 1 {
+                                    let index = newpath.get(i).unwrap();
+                                    betweenness_count[*index] += 1;
+                                }
+                            }
+                        }
+                        queued_for_next_round.push(newpath);
+                    }
+                }
+            }
+
+            // prep for next round, start fresh queue list
+            path_list.clear();
+            // load up the queue list, marked as visited
+            for path in queued_for_next_round {
+                let index = path[path.len() - 1];
+                path_list.push(path.clone());
+                visited[index] = true;
+            }
+            // now we do bookkeeping for any found
+            // shortest paths.
+            for f in found_for_this_pathlen {
+                num_paths[f] += 1;
+                total_path_length[f] += pathlen;
+                num_paths[index] += 1;
+                total_path_length[index] += pathlen;
+                search_list.retain(|&x| x != f);
+                search_state[f] = true;
+                if f == j {
+                    done = true;
+                }
+            }
+            // If no connection exists, stop searching for it.
+            if !touched {
+                search_list.retain(|&x| x != j);
+                search_state[j] = true;
+                done = true
+            }
+
+            pathlen += 1;
+        }
+    }
 }
+
+fn betweenness_task(
+    indices: &Vec<Vec<usize>>,
+    // betweenness_count: &mut Vec<u32>,
+    // total_path_length: &mut Vec<u32>,
+    // num_paths: &mut Vec<u32>,
+    start: &Instant,
+) -> (Vec<u32>, Vec<u32>, Vec<u32>) {
+    // println!("task here, next index {}", next_index);
+    let num_nodes = indices.len();
+    let mut betweenness_count: Vec<u32> = vec![0; num_nodes];
+    let mut total_path_length: Vec<u32> = vec![0; num_nodes];
+    let mut num_paths: Vec<u32> = vec![0; num_nodes];
+    for i in 0..num_nodes - 1 {
+        betweenness_for_node(i, indices, &mut betweenness_count, &mut total_path_length, &mut num_paths, start);
+    }
+    (betweenness_count, total_path_length, num_paths)
+}
+
+
+
+// #[derive(Clone, Debug)]
+// pub struct State {
+//     pub indices: &Vec<Vec<usize>>,
+//     // pub start: Instant,
+//     // pub last_elapsed: Duration,
+//     pub betweenness_count: &Vec<u32>,
+//     pub total_path_length: &Vec<u32>,
+//     pub num_paths: &Vec<u32>,
+//     pub next_index: usize,
+// }
+
+
+// fn dummy(state: &mut State) {
+//     println!("i am a dummy, next_index {}", state.next_index);
+// }
+
+// fn doit(state: &mut State) {
+
+//     let mut handles = Vec::new();
+//     let num_threads = 4;
+//     for _ in 0..num_threads {
+
+//         let handle = thread::spawn( || {
+//             // self.betweenness_task(&mut state);
+//             // dummy(&mut state);
+//             dummy(state);
+//             let _h = 8;
+//             // for i in 1..10 {
+//             //     println!("hi number {} from the spawned thread!", i);
+//             //     thread::sleep(Duration::from_millis(1));
+//             // }
+//         });
+//         handles.push(handle);
+//     }
+//     for h in handles {
+//         let r = h.join().unwrap();
+//         println!("thread done = {:?}", r);
+//     }
+//     // for i in 0..num_nodes - 1 {
+//     //     self.betweenness_for_node(i, &mut state);
+
+//     // }
+//     // println!("compute: C {:?}", start.elapsed());
+// }
 
 /// An undirected graph, made up of edges.
 #[derive(Clone, Debug)]
@@ -46,6 +222,13 @@ pub struct Graph<T> {
     total_path_length: Option<Vec<u32>>,
     /// Cache the num paths when possible.
     num_paths: Option<Vec<u32>>,
+
+    pub indices: Vec<Vec<usize>>,
+    pub betweennesscount: Vec<u32>,
+    pub totalpathlength: Vec<u32>,
+    pub numpaths: Vec<u32>,
+    pub start: Instant,
+
 
     // state: Option<State>,
 
@@ -86,6 +269,12 @@ where
             betweenness_count: None,
             total_path_length: None,
             num_paths: None,
+            indices: Vec::new(),
+            betweennesscount: Vec::new(),
+            totalpathlength: Vec::new(),
+            numpaths: Vec::new(),
+            start: Instant::now(),
+        
             // state: None,
         }
     }
@@ -547,111 +736,119 @@ where
     }
     
 
-    fn betweenness_for_node(&mut self, index: usize, state: &mut State) {
-        // let state = self.state.unwrap();
-        let num_nodes = state.indices.len();
-        let mut visited: Vec<bool> = vec![false; num_nodes];
-        let mut search_state: Vec<bool> = vec![false; num_nodes];
-        let elapsed = state.start.elapsed();
-        println!("  node: {:?}, {:?}, delta {:}", index, elapsed, elapsed.as_secs_f64() - state.last_elapsed.as_secs_f64());
-        state.last_elapsed = elapsed;
+    // fn betweenness_for_node(&mut self, index: usize) {
+    //     // let state = self.state.unwrap();
+    //     let num_nodes = self.indices.len();
+    //     let mut visited: Vec<bool> = vec![false; num_nodes];
+    //     let mut search_state: Vec<bool> = vec![false; num_nodes];
+    //     let _elapsed = self.start.elapsed();
+    //     // println!("  node: {:?}, {:?}, delta {:}", index, elapsed, elapsed.as_secs_f64() - state.last_elapsed.as_secs_f64());
+    //     // last_elapsed = elapsed;
+    
+    //     // mark node i and all those before i as searched, this sets
+    //     // up the search space for the next iterations of the loop.
+    //     for search_state in search_state.iter_mut().take(index + 1) {
+    //         *search_state = true;
+    //     }
+    
+    //     let mut search_list: Vec<usize> = Vec::with_capacity(num_nodes - index - 1);
+    //     for j in index+1..num_nodes {
+    //         search_list.push(j);
+    //     }
+    
+    //     while !search_list.is_empty() {
+    //         // 0. OUR MAIN SEARCH LOOP:  I and J
+    //         // 1. we search for path between i and j.  We're done when we find j
+    //         // 2. any short paths we find along the way, they get handled and removed from search list
+    //         // 3. along the way, we appropriately mark any between nodes
+    //         // 4. we also determine if no path exists (disconnected graph case)
+    //         let mut done = false;
+    //         let j = search_list[0];
+    //         for (x, visited) in visited.iter_mut().enumerate().take(num_nodes) {
+    //             *visited = x == index;
+    //         }
+    //         let mut pathlen: u32 = 1;
+    //         let path = vec![index];
+    //         let mut path_list = Vec::new();
+    //         path_list.push(path);
+    
+    //         while !done {
+    //             // for all shortest paths we find (and not necessily the i-j path we
+    //             // are currently searching for), we store all of them here. And for one
+    //             // node (i-j, or i-p, i-q...) there may be muliple paths that are shortest
+    //             // and have same end points.
+    //             let mut found_for_this_pathlen: Vec<usize> = Vec::new();
+    //             // this list store the next unvisited node, to be
+    //             // used as a starting node in the next round
+    //             let mut queued_for_next_round = Vec::new();
+    //             let mut touched: bool = false;
+    //             for path in path_list.as_slice() {
+    //                 let q = path[path.len() - 1];
+    //                 let vertex = self.indices[q];
+    //                 for x in vertex {
+    //                     // Check if we've been here before
+    //                     if !visited[x] {
+    //                         // if not, we're still not necessarily disconnected for this i-j instance
+    //                         touched = true;
+    //                         // one of our starting nodes for next round
+    //                         let mut newpath = path.clone();
+    //                         newpath.push(x);
+    //                         if !search_state[x] {
+    //                             // if this i-x is to be searched, then we're done for that pair
+    //                             // but we queue it first, in case other paths for same i-q are found
+    //                             found_for_this_pathlen.push(x);
+    //                             if newpath.len() > 2 {
+    //                                 for i in 1..newpath.len() - 1 {
+    //                                     let index = newpath.get(i).unwrap();
+    //                                     self.betweennesscount[*index] += 1;
+    //                                 }
+    //                             }
+    //                         }
+    //                         queued_for_next_round.push(newpath);
+    //                     }
+    //                 }
+    //             }
+    
+    //             // prep for next round, start fresh queue list
+    //             path_list.clear();
+    //             // load up the queue list, marked as visited
+    //             for path in queued_for_next_round {
+    //                 let index = path[path.len() - 1];
+    //                 path_list.push(path.clone());
+    //                 visited[index] = true;
+    //             }
+    //             // now we do bookkeeping for any found
+    //             // shortest paths.
+    //             for f in found_for_this_pathlen {
+    //                 self.numpaths[f] += 1;
+    //                 self.totalpathlength[f] += pathlen;
+    //                 self.numpaths[index] += 1;
+    //                 self.totalpathlength[index] += pathlen;
+    //                 search_list.retain(|&x| x != f);
+    //                 search_state[f] = true;
+    //                 if f == j {
+    //                     done = true;
+    //                 }
+    //             }
+    //             // If no connection exists, stop searching for it.
+    //             if !touched {
+    //                 search_list.retain(|&x| x != j);
+    //                 search_state[j] = true;
+    //                 done = true
+    //             }
+    
+    //             pathlen += 1;
+    //         }
+    //     }
+    // }
+    
+    // fn betweenness_task(&mut self) {
+    //     // println!("task here, next index {}", next_index);
+    // }
+    
+    
 
-        // mark node i and all those before i as searched, this sets
-        // up the search space for the next iterations of the loop.
-        for search_state in search_state.iter_mut().take(index + 1) {
-            *search_state = true;
-        }
 
-        let mut search_list: Vec<usize> = Vec::with_capacity(num_nodes - index - 1);
-        for j in index+1..num_nodes {
-            search_list.push(j);
-        }
-
-        while !search_list.is_empty() {
-            // 0. OUR MAIN SEARCH LOOP:  I and J
-            // 1. we search for path between i and j.  We're done when we find j
-            // 2. any short paths we find along the way, they get handled and removed from search list
-            // 3. along the way, we appropriately mark any between nodes
-            // 4. we also determine if no path exists (disconnected graph case)
-            let mut done = false;
-            let j = search_list[0];
-            for (x, visited) in visited.iter_mut().enumerate().take(num_nodes) {
-                *visited = x == index;
-            }
-            let mut pathlen: u32 = 1;
-            let path = vec![index];
-            let mut path_list = Vec::new();
-            path_list.push(path);
-
-            while !done {
-                // for all shortest paths we find (and not necessily the i-j path we
-                // are currently searching for), we store all of them here. And for one
-                // node (i-j, or i-p, i-q...) there may be muliple paths that are shortest
-                // and have same end points.
-                let mut found_for_this_pathlen: Vec<usize> = Vec::with_capacity(100);
-                // this list store the next unvisited node, to be
-                // used as a starting node in the next round
-                let mut queued_for_next_round = Vec::with_capacity(1000);
-                let mut touched: bool = false;
-                for path in path_list.as_slice() {
-                    let q = path[path.len() - 1];
-                    let vertex = &state.indices[q];
-                    for x in vertex {
-                        // Check if we've been here before
-                        if !visited[*x] {
-                            // if not, we're still not necessarily disconnected for this i-j instance
-                            touched = true;
-                            // one of our starting nodes for next round
-                            let mut newpath = path.clone();
-                            newpath.push(*x);
-                            if !search_state[*x] {
-                                // if this i-x is to be searched, then we're done for that pair
-                                // but we queue it first, in case other paths for same i-q are found
-                                found_for_this_pathlen.push(*x);
-                                if newpath.len() > 2 {
-                                    for i in 1..newpath.len() - 1 {
-                                        let index = newpath.get(i).unwrap();
-                                        state.betweenness_count[*index] += 1;
-                                    }
-                                }
-                            }
-                            queued_for_next_round.push(newpath);
-                        }
-                    }
-                }
-
-                // prep for next round, start fresh queue list
-                path_list.clear();
-                // load up the queue list, marked as visited
-                for path in queued_for_next_round {
-                    let index = path[path.len() - 1];
-                    path_list.push(path.clone());
-                    visited[index] = true;
-                }
-                // now we do bookkeeping for any found
-                // shortest paths.
-                for f in found_for_this_pathlen {
-                    state.num_paths[f] += 1;
-                    state.total_path_length[f] += pathlen;
-                    state.num_paths[index] += 1;
-                    state.total_path_length[index] += pathlen;
-                    search_list.retain(|&x| x != f);
-                    search_state[f] = true;
-                    if f == j {
-                        done = true;
-                    }
-                }
-                // If no connection exists, stop searching for it.
-                if !touched {
-                    search_list.retain(|&x| x != j);
-                    search_state[j] = true;
-                    done = true
-                }
-
-                pathlen += 1;
-            }
-        }
-    }
 
     /// This method computes the closeness and betweenness for a given Graph.
     ///
@@ -675,31 +872,67 @@ where
         let num_nodes = indices.len();
 
         println!("compute: B {:?}", start.elapsed());
-        //let betweenness_count: Vec<u32> = vec![0; num_nodes];
-        //let total_path_length: Vec<u32> = vec![0; num_nodes];
-        //let num_paths: Vec<u32> = vec![0; num_nodes];
+        let mut betweenness_count: Vec<u32> = vec![0; num_nodes];
+        let mut total_path_length: Vec<u32> = vec![0; num_nodes];
+        let mut num_paths: Vec<u32> = vec![0; num_nodes];
 
         // the last searchable pair is:
         //     i = num_nodes - 2
         //     j = num_nodes - 1
-        let last_elapsed = start.elapsed();
-        let mut state = State {
-            indices, 
-            start,
-            last_elapsed,
-            betweenness_count: vec![0; num_nodes],
-            total_path_length: vec![0; num_nodes], 
-            num_paths: vec![0; num_nodes],
-        };
-        for i in 0..num_nodes - 1 {
-            self.betweenness_for_node(i, &mut state);
+        // let last_elapsed = start.elapsed();
+        // let mut state = State {
+        //     &indices, 
+        //     start,
+        //     last_elapsed: start.elapsed(),
+        //     betweenness_count: &betweenness_count,
+        //     total_path_length: &total_path_length, 
+        //     num_paths: &num_paths,
+        //     next_index: 0,
+        // };
 
-        }
+        // doit(&mut state);
+        //let mut handles = Vec::new();
+        let num_threads = 4;
+        //for _ in 0..num_threads {
+
+            let h = thread::spawn(move || {
+                // self.betweenness_task(&mut state);
+                // dummy(&mut state);
+                //self.betweenness_task();
+                // let (betweenness_count, total_path_length, num_paths) =
+                betweenness_task(
+                    &indices,
+                    // &mut betweenness_count,
+                    // &mut total_path_length,
+                    // &mut num_paths,
+                    &start
+  
+                )
+                //let _h = 8;
+                // for i in 1..10 {
+                //     println!("hi number {} from the spawned thread!", i);
+                //     thread::sleep(Duration::from_millis(1));
+                // }
+            });
+            //handles.push(handle);
+        //}
+        //let h = handles[0];
+        //for h in handles {
+            let (b, t, n) = h.join().unwrap();
+            // println!("thread done = {:?}", r);
+          //}
+        // for i in 0..num_nodes - 1 {
+        //     self.betweenness_for_node(i, &mut state);
+
+        // }
         println!("compute: C {:?}", start.elapsed());
 
-        self.betweenness_count = Some(state.betweenness_count);
-        self.total_path_length = Some(state.total_path_length);
-        self.num_paths = Some(state.num_paths);
+        // self.betweenness_count = Some(betweenness_count);
+        // self.total_path_length = Some(total_path_length);
+        // self.num_paths = Some(num_paths);
+        self.betweenness_count = Some(b);
+        self.total_path_length = Some(t);
+        self.num_paths = Some(n);
     }
 
     /// This method returns the betweenness for a given Graph.
