@@ -61,8 +61,7 @@ fn betweenness_for_node(
                         // if not, we're still not necessarily disconnected for this i-j instance
                         touched = true;
                         // one of our starting nodes for next round
-                        let mut newpath = path.clone();
-                        newpath.push(*x);
+                        let newpath = [path.as_slice(), &[*x]].concat();
                         if !search_state[*x] {
                             // if this i-x is to be searched, then we're done for that pair
                             // but we queue it first, in case other paths for same i-q are found
