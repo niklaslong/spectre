@@ -69,8 +69,8 @@ fn betweenness_for_node(
                             found_for_this_pathlen.push(*x);
                             if newpath.len() > 2 {
                                 for i in 1..newpath.len() - 1 {
-                                    let index = newpath.get(i).unwrap();
-                                    betweenness_count[*index] += 1;
+                                    let index = newpath[i];
+                                    betweenness_count[index] += 1;
                                 }
                             }
                         }
