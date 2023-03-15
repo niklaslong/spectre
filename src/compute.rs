@@ -83,7 +83,7 @@ fn betweenness_for_node(
             // load up the queue list, marked as visited
             for path in queued_for_next_round {
                 let index = path[path.len() - 1];
-                path_list.push(path.clone());
+                path_list.push(path);
                 visited[index] = true;
             }
             // now we do bookkeeping for any found
