@@ -4,178 +4,14 @@ use std::{
     collections::{BTreeMap, HashMap, HashSet},
     hash::Hash,
     ops::Sub,
-    time::{Instant},
-    thread,
     sync::{Arc, Mutex},
+    thread,
+    time::Instant,
 };
 
 use nalgebra::{DMatrix, DVector, SymmetricEigen};
 
-use crate::edge::Edge;
-use crate::compute::{betweenness_task, S};
-
-// struct S {
-//     indices: Vec<Vec<usize>>,
-// }
-
-// //     pub indices: &Vec<Vec<usize>>,
-// //     // pub start: Instant,
-// //     // pub last_elapsed: Duration,
-// //     pub betweenness_count: &Vec<u32>,
-// //     pub total_path_length: &Vec<u32>,
-// //     pub num_paths: &Vec<u32>,
-// //     pub next_index: usize,
-// fn betweenness_for_node( 
-//     index: usize, 
-//     indices: &Vec<Vec<usize>>,
-//     betweenness_count: &mut Vec<u32>,
-//     total_path_length: &mut Vec<u32>,
-//     num_paths: &mut Vec<u32>,
-
-// ) {
-//     // let state = self.state.unwrap();
-//     // let indices = s.indices;
-//     let num_nodes = indices.len();
-//     let mut visited: Vec<bool> = vec![false; num_nodes];
-//     let mut search_state: Vec<bool> = vec![false; num_nodes];
-//     // let _elapsed = start.elapsed();
-//     // println!("  node: {:?}, {:?}, delta {:}", index, elapsed, elapsed.as_secs_f64() - state.last_elapsed.as_secs_f64());
-//     // last_elapsed = elapsed;
-
-//     // mark node i and all those before i as searched, this sets
-//     // up the search space for the next iterations of the loop.
-//     for search_state in search_state.iter_mut().take(index + 1) {
-//         *search_state = true;
-//     }
-
-//     let mut search_list: Vec<usize> = Vec::with_capacity(num_nodes - index - 1);
-//     for j in index+1..num_nodes {
-//         search_list.push(j);
-//     }
-
-//     while !search_list.is_empty() {
-//         // 0. OUR MAIN SEARCH LOOP:  I and J
-//         // 1. we search for path between i and j.  We're done when we find j
-//         // 2. any short paths we find along the way, they get handled and removed from search list
-//         // 3. along the way, we appropriately mark any between nodes
-//         // 4. we also determine if no path exists (disconnected graph case)
-//         let mut done = false;
-//         let j = search_list[0];
-//         for (x, visited) in visited.iter_mut().enumerate().take(num_nodes) {
-//             *visited = x == index;
-//         }
-//         let mut pathlen: u32 = 1;
-//         let path = vec![index];
-//         let mut path_list = Vec::new();
-//         path_list.push(path);
-
-//         while !done {
-//             // for all shortest paths we find (and not necessily the i-j path we
-//             // are currently searching for), we store all of them here. And for one
-//             // node (i-j, or i-p, i-q...) there may be muliple paths that are shortest
-//             // and have same end points.
-//             let mut found_for_this_pathlen: Vec<usize> = Vec::new();
-//             // this list store the next unvisited node, to be
-//             // used as a starting node in the next round
-//             let mut queued_for_next_round = Vec::new();
-//             let mut touched: bool = false;
-//             for path in path_list.as_slice() {
-//                 let q = path[path.len() - 1];
-//                 let vertex = &indices[q];
-//                 for x in vertex {
-//                     // Check if we've been here before
-//                     if !visited[*x] {
-//                         // if not, we're still not necessarily disconnected for this i-j instance
-//                         touched = true;
-//                         // one of our starting nodes for next round
-//                         let mut newpath = path.clone();
-//                         newpath.push(*x);
-//                         if !search_state[*x] {
-//                             // if this i-x is to be searched, then we're done for that pair
-//                             // but we queue it first, in case other paths for same i-q are found
-//                             found_for_this_pathlen.push(*x);
-//                             if newpath.len() > 2 {
-//                                 for i in 1..newpath.len() - 1 {
-//                                     let index = newpath.get(i).unwrap();
-//                                     betweenness_count[*index] += 1;
-//                                 }
-//                             }
-//                         }
-//                         queued_for_next_round.push(newpath);
-//                     }
-//                 }
-//             }
-
-//             // prep for next round, start fresh queue list
-//             path_list.clear();
-//             // load up the queue list, marked as visited
-//             for path in queued_for_next_round {
-//                 let index = path[path.len() - 1];
-//                 path_list.push(path.clone());
-//                 visited[index] = true;
-//             }
-//             // now we do bookkeeping for any found
-//             // shortest paths.
-//             for f in found_for_this_pathlen {
-//                 num_paths[f] += 1;
-//                 total_path_length[f] += pathlen;
-//                 num_paths[index] += 1;
-//                 total_path_length[index] += pathlen;
-//                 search_list.retain(|&x| x != f);
-//                 search_state[f] = true;
-//                 if f == j {
-//                     done = true;
-//                 }
-//             }
-//             // If no connection exists, stop searching for it.
-//             if !touched {
-//                 search_list.retain(|&x| x != j);
-//                 search_state[j] = true;
-//                 done = true
-//             }
-
-//             pathlen += 1;
-//         }
-//     }
-// }
-
-// fn betweenness_task(
-//    s: &S,
-// //    indices: Vec<Vec<usize>>,
-//     c: Arc<Mutex<usize>>,
-//     // start_index: usize,
-//     // end_index: usize,
-// ) -> (Vec<u32>, Vec<u32>, Vec<u32>) {
-//     let start = Instant::now();
-//     // println!("task here, start_index {}, end_index {}", start_index, end_index);
-//     // let elapsed = start.elapsed();
-//     // println!("compute A start {:?}: {:?}", start_index, start.elapsed());
-
-//     let indices = &s.indices;
-//     let num_nodes = indices.len();
-//     let mut betweenness_count: Vec<u32> = vec![0; num_nodes];
-//     let mut total_path_length: Vec<u32> = vec![0; num_nodes];
-//     let mut num_paths: Vec<u32> = vec![0; num_nodes];
-//     let mut finished = false;
-//     while !finished {
-//         let mut counter = c.lock().unwrap();
-//         let index: usize = *counter;
-//         *counter += 1;
-//         drop(counter);
-//         if index < num_nodes - 1 {
-//             if index % 100 == 0 {
-//                 println!("node: {}, time: {:?}", index, start.elapsed());
-//             }
-//             betweenness_for_node(index, indices, &mut betweenness_count, &mut total_path_length, &mut num_paths);
-//         } else {
-//             finished = true;
-//         }
-//     }
-//     (betweenness_count, total_path_length, num_paths)
-// }
-
-
-
+use crate::{compute::betweenness_task, edge::Edge};
 
 /// An undirected graph, made up of edges.
 #[derive(Clone, Debug)]
@@ -200,17 +36,6 @@ pub struct Graph<T> {
     total_path_length: Option<Vec<u32>>,
     /// Cache the num paths when possible.
     num_paths: Option<Vec<u32>>,
-
-    // pub indices: Vec<Vec<usize>>,
-    // pub betweennesscount: Vec<u32>,
-    // pub totalpathlength: Vec<u32>,
-    // pub numpaths: Vec<u32>,
-    // pub start: Instant,
-
-
-    // state: Option<State>,
-
-
 }
 
 impl<T> Default for Graph<T>
@@ -247,13 +72,6 @@ where
             betweenness_count: None,
             total_path_length: None,
             num_paths: None,
-            // indices: Vec::new(),
-            // betweennesscount: Vec::new(),
-            // totalpathlength: Vec::new(),
-            // numpaths: Vec::new(),
-            // start: Instant::now(),
-        
-            // state: None,
         }
     }
 
@@ -712,8 +530,6 @@ where
 
         indices
     }
-    
-
 
     /// This method computes the closeness and betweenness for a given Graph.
     ///
@@ -727,7 +543,6 @@ where
     ///
     fn betweenness_and_closeness_centrality(&mut self, num_threads: usize) {
         let start = Instant::now();
-        let elapsed = start.elapsed();
         println!("\ncompute: num_threads {:?}", num_threads);
 
         if self.betweenness_count.is_some() {
@@ -741,58 +556,15 @@ where
         let mut total_path_length: Vec<u32> = vec![0; num_nodes];
         let mut num_paths: Vec<u32> = vec![0; num_nodes];
 
-        // the last searchable pair is:
-        //     i = num_nodes - 2
-        //     j = num_nodes - 1
-        // let last_elapsed = start.elapsed();
-        // let mut state = State {
-        //     &indices, 
-        //     start,
-        //     last_elapsed: start.elapsed(),
-        //     betweenness_count: &betweenness_count,
-        //     total_path_length: &total_path_length, 
-        //     num_paths: &num_paths,
-        //     next_index: 0,
-        // };
-
-        // doit(&mut state);
         let mut handles = Vec::new();
-        // let num_threads = 2;
-        // let mut start_indices = Vec::new();
-        // println!("num_nodes {}", num_nodes);
-        // for t in 0..num_threads+1 {
-        //     let part = (num_threads - t) as f64 / num_threads as f64;
-        //     let section = 1.0 - part.powf(1.0/1.6);
-        //     let mut index = (section * num_nodes as f64).floor() as usize;
-        //     if index > num_nodes - 1 {
-        //         index = num_nodes - 1;
-        //     }
-        //     println!("t:{t}, part:{part}, section:{section}, index:{index}");
-        //     start_indices.push(index);
-
-        // }
-        let s = Arc::new(S { indices });
-        let counter = Arc::new(Mutex::new(0 as usize));
-        for t in 0..num_threads {
-            let ss = s.clone();
-            let cc = Arc::clone(&counter);
-            // let ii = indices.clone();
-            // let start_index = start_indices[t];
-            // let end_index = start_indices[t+1];
-            //if start_index < end_index {
-                let handle = thread::spawn(move || {
-                    betweenness_task(
-                        // ii,
-                        &ss,
-                        cc,
-                        // end_index,
-                        // &start
-                    )
-                });    
-                handles.push(handle);
-            // }
+        let wrapped_indices = Arc::new(indices);
+        let wrapped_counter = Arc::new(Mutex::new(0 as usize));
+        for _ in 0..num_threads {
+            let acounter = Arc::clone(&wrapped_counter);
+            let aindices = Arc::clone(&wrapped_indices);
+            let handle = thread::spawn(move || betweenness_task(acounter, aindices));
+            handles.push(handle);
         }
-        //let h = handles[0];
         for h in handles {
             let (b, t, n) = h.join().unwrap();
             for i in 0..num_nodes {
@@ -802,18 +574,12 @@ where
             }
             println!("thread done ");
         }
-        // for i in 0..num_nodes - 1 {
-        //     self.betweenness_for_node(i, &mut state);
 
-        // }
         println!("compute: C {:?}", start.elapsed());
 
         self.betweenness_count = Some(betweenness_count);
         self.total_path_length = Some(total_path_length);
         self.num_paths = Some(num_paths);
-        // self.betweenness_count = Some(b);
-        // self.total_path_length = Some(t);
-        // self.num_paths = Some(n);
     }
 
     /// This method returns the betweenness for a given Graph.
