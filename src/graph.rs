@@ -1398,20 +1398,9 @@ mod tests {
             }
             n += 1;
         }
-        // _ = graph1.betweenness_centrality(1);
-        // graph1.clear_cache();
-        // _ = graph1.betweenness_centrality(2);
-        // graph1.clear_cache();
-        _ = graph1.betweenness_centrality(3);
-        graph1.clear_cache();
-        _ = graph1.betweenness_centrality(4);
-        graph1.clear_cache();
-        _ = graph1.betweenness_centrality(5);
-        graph1.clear_cache();
-        let betweenness_centrality1 = graph1.betweenness_centrality(6);
 
-        // let betweenness_centrality1 = graph1.betweenness_centrality(3);
-        let closeness_centrality1 = graph1.closeness_centrality(3);
+        let betweenness_centrality1 = graph1.betweenness_centrality(4);
+        let closeness_centrality1 = graph1.closeness_centrality(4);
 
         // graph2 uses ip address as node value
         let mut graph2: Graph<&str> = Graph::new();
@@ -1428,8 +1417,8 @@ mod tests {
             n += 1;
         }
 
-        let betweenness_centrality2 = graph2.betweenness_centrality(5);
-        let closeness_centrality2 = graph2.closeness_centrality(5);
+        let betweenness_centrality2 = graph2.betweenness_centrality(8);
+        let closeness_centrality2 = graph2.closeness_centrality(8);
         let b1 = betweenness_centrality1.get(&0).unwrap();
         let b2 = betweenness_centrality2.get("65.21.141.242").unwrap();
         let c1 = closeness_centrality1.get(&0).unwrap();
