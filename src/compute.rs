@@ -132,7 +132,6 @@ fn betweenness_for_node(
     }
 }
 
-
 /// this function is the thread task
 /// grabs next unprocessed node
 /// if no more nodes, exits
