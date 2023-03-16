@@ -132,6 +132,11 @@ fn betweenness_for_node(
     }
 }
 
+
+/// this function is the thread task
+/// grabs next unprocessed node
+/// if no more nodes, exits
+/// returning betweenness, total path lengths, and num paths
 fn betweenness_task(
     acounter: Arc<Mutex<usize>>,
     aindices: Arc<Vec<Vec<GraphIndex>>>,
@@ -140,7 +145,7 @@ fn betweenness_task(
     let indices = &aindices;
     let num_nodes = indices.len();
 
-    // each worker thread keeps it own lists of data
+    // each worker thread keeps its own cache of data
     // these are returned when the thread finishes
     // and then summed by the caller
     let mut betweenness_count: Vec<u32> = vec![0; num_nodes];
