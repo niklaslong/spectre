@@ -541,12 +541,12 @@ where
     /// Normalize the counts by dividing by the number of shortest paths found
     ///
     fn betweenness_and_closeness_centrality(&mut self, num_threads: usize) {
-
         if self.betweenness_count.is_some() {
             return;
         }
 
-        let (betweenness_count, total_path_length, num_paths)  = compute_betweenness(self.get_adjacency_indices(), num_threads);
+        let (betweenness_count, total_path_length, num_paths) =
+            compute_betweenness(self.get_adjacency_indices(), num_threads);
 
         self.betweenness_count = Some(betweenness_count);
         self.total_path_length = Some(total_path_length);

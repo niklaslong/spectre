@@ -1,14 +1,13 @@
 use std::{
     sync::{Arc, Mutex},
-    time::Instant,
     thread,
+    time::Instant,
 };
 
-use crate::graph::{GraphIndex};
+use crate::graph::GraphIndex;
 
 const MIN_NUM_THREADS: usize = 1;
 const MAX_NUM_THREADS: usize = 128;
-
 
 /// This is a BFS, Breadth First Search implementation
 /// In addition to counting betweenness attributes, path
@@ -169,8 +168,10 @@ fn betweenness_task(
     (betweenness_count, total_path_length, num_paths)
 }
 
-
-pub fn compute_betweenness(indices: Vec<Vec<GraphIndex>>, mut num_threads: usize) -> (Vec<u32>, Vec<u32>, Vec<u32>) {
+pub fn compute_betweenness(
+    indices: Vec<Vec<GraphIndex>>,
+    mut num_threads: usize,
+) -> (Vec<u32>, Vec<u32>, Vec<u32>) {
     let start = Instant::now();
     if num_threads < MIN_NUM_THREADS {
         num_threads = MIN_NUM_THREADS;
