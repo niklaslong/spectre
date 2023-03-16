@@ -105,6 +105,7 @@ fn betweenness_for_node(
                 path_list.push(path);
                 visited[end_index as usize] = true;
             }
+
             // now we do bookkeeping for any found
             // shortest paths.
             for f in found_for_this_pathlen {
@@ -118,6 +119,7 @@ fn betweenness_for_node(
                     done = true;
                 }
             }
+
             // If no connection exists, stop searching for it.
             if !touched {
                 search_list.retain(|&x| x != j);
@@ -137,12 +139,14 @@ fn betweenness_task(
     let start = Instant::now();
     let indices = &aindices;
     let num_nodes = indices.len();
+
     // each worker thread keeps it own lists of data
     // these are returned when the thread finishes
     // and then summed by the caller
     let mut betweenness_count: Vec<u32> = vec![0; num_nodes];
     let mut total_path_length: Vec<u32> = vec![0; num_nodes];
     let mut num_paths: Vec<u32> = vec![0; num_nodes];
+
     let mut finished = false;
     while !finished {
         let mut counter = acounter.lock().unwrap();
@@ -184,12 +188,14 @@ pub fn compute_betweenness(
     let mut handles = Vec::new();
     let wrapped_indices = Arc::new(indices);
     let wrapped_counter = Arc::new(Mutex::new(0));
+
     for _ in 0..num_threads {
         let acounter = Arc::clone(&wrapped_counter);
         let aindices = Arc::clone(&wrapped_indices);
         let handle = thread::spawn(move || betweenness_task(acounter, aindices));
         handles.push(handle);
     }
+
     for h in handles {
         let (b, t, n) = h.join().unwrap();
         for i in 0..num_nodes {
@@ -197,9 +203,9 @@ pub fn compute_betweenness(
             total_path_length[i] += t[i];
             num_paths[i] += n[i];
         }
-        println!("thread done ");
     }
 
     println!("compute: done {:?}", start.elapsed());
+
     (betweenness_count, total_path_length, num_paths)
 }
