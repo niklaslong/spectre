@@ -13,6 +13,8 @@ use nalgebra::{DMatrix, DVector, SymmetricEigen};
 
 use crate::{compute::betweenness_task, edge::Edge};
 
+pub type GraphIndex = u16;
+
 /// An undirected graph, made up of edges.
 #[derive(Clone, Debug)]
 pub struct Graph<T> {
@@ -483,17 +485,17 @@ where
     /// This method returns a set connection indices for each node.
     /// It a compact way to view the adjacency matrix, and therefore, is
     /// used for the computation of betweenness and closeness centralities
-    pub fn get_adjacency_indices(&mut self) -> Vec<Vec<usize>> {
-        let mut indices: Vec<Vec<usize>> = Vec::new();
+    pub fn get_adjacency_indices(&mut self) -> Vec<Vec<GraphIndex>> {
+        let mut indices: Vec<Vec<GraphIndex>> = Vec::new();
         let adjacency_matrix = self.adjacency_matrix();
 
         for m in 0..adjacency_matrix.nrows() {
-            let neighbors: Vec<usize> = adjacency_matrix
+            let neighbors: Vec<GraphIndex> = adjacency_matrix
                 .row(m)
                 .iter()
                 .enumerate()
                 .filter(|(_n, &val)| val == 1.0)
-                .map(|(n, _)| n)
+                .map(|(n, _)| n as GraphIndex)
                 .collect();
             indices.push(neighbors);
         }
@@ -548,7 +550,7 @@ where
         if self.betweenness_count.is_some() {
             return;
         }
-        let indices: Vec<Vec<usize>> = self.get_adjacency_indices();
+        let indices: Vec<Vec<GraphIndex>> = self.get_adjacency_indices();
         let num_nodes = indices.len();
 
         println!("compute: B {:?}", start.elapsed());
@@ -1382,6 +1384,38 @@ mod tests {
         let sample: Sample = serde_json::from_str(&jstring).unwrap();
         sample
     }
+    #[test]
+    fn asdf() {
+        // let index = 13 as usize;
+        // // let mut pathlen: u32 = 1;
+        // let path = [index, index, index];
+        // let dummy = [1 as usize, 0 as usize, 4 as usize, 4 as usize, 5 as usize];
+        // // let v1: &[usize] = &path;
+        // // let v2: &[usize] = &dummy;
+        // let mut path_list = Vec::<&[usize]>::new();
+        // path_list.push(&path);
+        // path_list.push(&dummy);
+        // println!("path_list len {}", path_list.len());
+        // println!("path_list element 0 len {}", path_list[0].len());
+        // println!("path_list element 1 len {}", path_list[1].len());
+        let v1 = vec![0 as usize, 1 as usize, 2 as usize];
+        let v2 = [3 as usize];
+        // let a: &[usize] = &v1;
+        // let b: &[usize] = &v2;
+
+        // let v2 = Vec::new().clone_from_slice(&v1[0..2]);
+        // let v2 = Vec::from_raw_parts(v1.as_mut_ptr(), v1.len()+1, v1.len()+1);
+        let v3 = [v1.as_slice(), &[3]].concat();
+        println!("v1 {:?}", v1);
+        println!("v2 {:?}", v2);
+        println!("v3 {:?}", v3);
+
+
+        //part.copy_from_slice(&data[1..4]);
+        // let path2 = [0 as usize; path.len()+1];
+    }
+
+
 
     #[test]
     fn loaded_sample_graph() {

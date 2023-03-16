@@ -3,9 +3,12 @@ use std::{
     time::Instant,
 };
 
+use crate::graph::GraphIndex;
+
+
 fn betweenness_for_node(
     index: usize,
-    indices: &Vec<Vec<usize>>,
+    indices: &Vec<Vec<GraphIndex>>,
     betweenness_count: &mut Vec<u32>,
     total_path_length: &mut Vec<u32>,
     num_paths: &mut Vec<u32>,
@@ -20,10 +23,10 @@ fn betweenness_for_node(
         *search_state = true;
     }
 
-    let mut search_list: Vec<usize> = Vec::with_capacity(num_nodes - index - 1);
+    let mut search_list: Vec<GraphIndex> = Vec::with_capacity(num_nodes - index - 1);
     // we are searching for all j's that are greater than index
     for j in index + 1..num_nodes {
-        search_list.push(j);
+        search_list.push(j as GraphIndex);
     }
 
     while !search_list.is_empty() {
@@ -38,7 +41,7 @@ fn betweenness_for_node(
             *visited = x == index;
         }
         let mut pathlen: u32 = 1;
-        let path = vec![index];
+        let path = vec![index as GraphIndex];
         let mut path_list = Vec::new();
         path_list.push(path);
 
@@ -47,29 +50,29 @@ fn betweenness_for_node(
             // are currently searching for), we store all of them here. And for one
             // node (i-j, or i-p, i-q...) there may be muliple paths that are shortest
             // and have same end points.
-            let mut found_for_this_pathlen: Vec<usize> = Vec::new();
+            let mut found_for_this_pathlen: Vec<GraphIndex> = Vec::new();
             // this list store the next unvisited node, to be
             // used as a starting node in the next round
             let mut queued_for_next_round = Vec::new();
             let mut touched: bool = false;
             for path in path_list.as_slice() {
                 let q = path[path.len() - 1];
-                let vertex = &indices[q];
+                let vertex = &indices[q as usize];
                 for x in vertex {
                     // Check if we've been here before
-                    if !visited[*x] {
+                    if !visited[*x as usize] {
                         // if not, we're still not necessarily disconnected for this i-j instance
                         touched = true;
                         // one of our starting nodes for next round
                         let newpath = [path.as_slice(), &[*x]].concat();
-                        if !search_state[*x] {
+                        if !search_state[*x as usize] {
                             // if this i-x is to be searched, then we're done for that pair
                             // but we queue it first, in case other paths for same i-q are found
                             found_for_this_pathlen.push(*x);
                             if newpath.len() > 2 {
                                 for i in 1..newpath.len() - 1 {
-                                    let index = newpath[i];
-                                    betweenness_count[index] += 1;
+                                    let b = newpath[i];
+                                    betweenness_count[b as usize] += 1;
                                 }
                             }
                         }
@@ -82,19 +85,19 @@ fn betweenness_for_node(
             path_list.clear();
             // load up the queue list, marked as visited
             for path in queued_for_next_round {
-                let index = path[path.len() - 1];
+                let end_index = path[path.len() - 1];
                 path_list.push(path);
-                visited[index] = true;
+                visited[end_index as usize] = true;
             }
             // now we do bookkeeping for any found
             // shortest paths.
             for f in found_for_this_pathlen {
-                num_paths[f] += 1;
-                total_path_length[f] += pathlen;
+                num_paths[f as usize] += 1;
+                total_path_length[f as usize] += pathlen;
                 num_paths[index] += 1;
                 total_path_length[index] += pathlen;
                 search_list.retain(|&x| x != f);
-                search_state[f] = true;
+                search_state[f as usize] = true;
                 if f == j {
                     done = true;
                 }
@@ -102,7 +105,7 @@ fn betweenness_for_node(
             // If no connection exists, stop searching for it.
             if !touched {
                 search_list.retain(|&x| x != j);
-                search_state[j] = true;
+                search_state[j as usize] = true;
                 done = true
             }
 
@@ -113,7 +116,7 @@ fn betweenness_for_node(
 
 pub fn betweenness_task(
     acounter: Arc<Mutex<usize>>,
-    aindices: Arc<Vec<Vec<usize>>>,
+    aindices: Arc<Vec<Vec<GraphIndex>>>,
 ) -> (Vec<u32>, Vec<u32>, Vec<u32>) {
     let start = Instant::now();
     let indices = &aindices;
