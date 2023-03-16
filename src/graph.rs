@@ -14,6 +14,8 @@ use nalgebra::{DMatrix, DVector, SymmetricEigen};
 use crate::{compute::betweenness_task, edge::Edge};
 
 pub type GraphIndex = u16;
+const MIN_NUM_THREADS: usize = 1;
+const MAX_NUM_THREADS: usize = 128;
 
 /// An undirected graph, made up of edges.
 #[derive(Clone, Debug)]
@@ -543,8 +545,13 @@ where
     /// in-between (i.e., not an end point), increment their betweenness value.
     /// Normalize the counts by dividing by the number of shortest paths found
     ///
-    fn betweenness_and_closeness_centrality(&mut self, num_threads: usize) {
+    fn betweenness_and_closeness_centrality(&mut self, mut num_threads: usize) {
         let start = Instant::now();
+        if num_threads < MIN_NUM_THREADS {
+            num_threads = MIN_NUM_THREADS;
+        } else if num_threads > MAX_NUM_THREADS {
+            num_threads = MAX_NUM_THREADS;
+        }
         println!("\ncompute: num_threads {:?}", num_threads);
 
         if self.betweenness_count.is_some() {
@@ -1384,38 +1391,6 @@ mod tests {
         let sample: Sample = serde_json::from_str(&jstring).unwrap();
         sample
     }
-    #[test]
-    fn asdf() {
-        // let index = 13 as usize;
-        // // let mut pathlen: u32 = 1;
-        // let path = [index, index, index];
-        // let dummy = [1 as usize, 0 as usize, 4 as usize, 4 as usize, 5 as usize];
-        // // let v1: &[usize] = &path;
-        // // let v2: &[usize] = &dummy;
-        // let mut path_list = Vec::<&[usize]>::new();
-        // path_list.push(&path);
-        // path_list.push(&dummy);
-        // println!("path_list len {}", path_list.len());
-        // println!("path_list element 0 len {}", path_list[0].len());
-        // println!("path_list element 1 len {}", path_list[1].len());
-        let v1 = vec![0 as usize, 1 as usize, 2 as usize];
-        let v2 = [3 as usize];
-        // let a: &[usize] = &v1;
-        // let b: &[usize] = &v2;
-
-        // let v2 = Vec::new().clone_from_slice(&v1[0..2]);
-        // let v2 = Vec::from_raw_parts(v1.as_mut_ptr(), v1.len()+1, v1.len()+1);
-        let v3 = [v1.as_slice(), &[3]].concat();
-        println!("v1 {:?}", v1);
-        println!("v2 {:?}", v2);
-        println!("v3 {:?}", v3);
-
-
-        //part.copy_from_slice(&data[1..4]);
-        // let path2 = [0 as usize; path.len()+1];
-    }
-
-
 
     #[test]
     fn loaded_sample_graph() {
@@ -1451,8 +1426,9 @@ mod tests {
             n += 1;
         }
 
-        let betweenness_centrality2 = graph2.betweenness_centrality(8);
-        let closeness_centrality2 = graph2.closeness_centrality(8);
+        // passing in zero as num_threads will be clamped to 1 thread
+        let betweenness_centrality2 = graph2.betweenness_centrality(0);
+        let closeness_centrality2 = graph2.closeness_centrality(0);
         let b1 = betweenness_centrality1.get(&0).unwrap();
         let b2 = betweenness_centrality2.get("65.21.141.242").unwrap();
         let c1 = closeness_centrality1.get(&0).unwrap();

@@ -5,7 +5,10 @@ use std::{
 
 use crate::graph::GraphIndex;
 
-
+/// This is a BFS, Breadth First Search implementation
+/// In addition to counting betweenness attributes, path
+/// lengths and counts are recorded, for quick access
+/// to closeness centrality data
 fn betweenness_for_node(
     index: usize,
     indices: &Vec<Vec<GraphIndex>>,
@@ -14,7 +17,6 @@ fn betweenness_for_node(
     num_paths: &mut Vec<u32>,
 ) {
     let num_nodes = indices.len();
-    let mut visited: Vec<bool> = vec![false; num_nodes];
     let mut search_state: Vec<bool> = vec![false; num_nodes];
 
     // mark node index and all those before index as searched, this sets
@@ -30,30 +32,39 @@ fn betweenness_for_node(
     }
 
     while !search_list.is_empty() {
-        // 0. OUR MAIN SEARCH LOOP:  I and J
-        // 1. we search for path between i and j.  We're done when we find j
+        // 0. OUR MAIN SEARCH LOOP: for all j's greater than index (the node we're handling)
+        // 1. we search for all the shortest paths between index and j.  We're done when we find j
         // 2. any short paths we find along the way, they get handled and removed from search list
-        // 3. along the way, we appropriately mark any between nodes
+        // 3. along the way, we appropriately mark any between nodes in shortest paths.
         // 4. we also determine if no path exists (disconnected graph case)
-        let mut done = false;
+
+        // grab our next j
         let j = search_list[0];
-        for (x, visited) in visited.iter_mut().enumerate().take(num_nodes) {
-            *visited = x == index;
-        }
+
+        // we need to track visited status for ALL nodes (except for index)
+        let mut visited: Vec<bool> = vec![false; num_nodes];
+        visited[index] = true;
+
+        // every journey begins with a single step
         let mut pathlen: u32 = 1;
+
+        // initialize (seed) first path with our index node
         let path = vec![index as GraphIndex];
         let mut path_list = Vec::new();
         path_list.push(path);
 
+        let mut done = false;
         while !done {
             // for all shortest paths we find (and not necessily the i-j path we
             // are currently searching for), we store all of them here. And for one
-            // node (i-j, or i-p, i-q...) there may be muliple paths that are shortest
-            // and have same end points.
+            // node (i-j, or i-p, i-q...) there may be muliple distince paths that
+            // are shortest and have same end points.
             let mut found_for_this_pathlen: Vec<GraphIndex> = Vec::new();
-            // this list store the next unvisited node, to be
-            // used as a starting node in the next round
+
+            // this list stores the next unvisited node index,
+            // to be used as a starting node in the next round
             let mut queued_for_next_round = Vec::new();
+
             let mut touched: bool = false;
             for path in path_list.as_slice() {
                 let q = path[path.len() - 1];
@@ -70,6 +81,8 @@ fn betweenness_for_node(
                             // but we queue it first, in case other paths for same i-q are found
                             found_for_this_pathlen.push(*x);
                             if newpath.len() > 2 {
+                                // Now we can increment the betweenness counts: newpath is a Shortest Path
+                                // Of course, we skip the first and last nodes
                                 for i in 1..newpath.len() - 1 {
                                     let b = newpath[i];
                                     betweenness_count[b as usize] += 1;
@@ -93,8 +106,8 @@ fn betweenness_for_node(
             // shortest paths.
             for f in found_for_this_pathlen {
                 num_paths[f as usize] += 1;
-                total_path_length[f as usize] += pathlen;
                 num_paths[index] += 1;
+                total_path_length[f as usize] += pathlen;
                 total_path_length[index] += pathlen;
                 search_list.retain(|&x| x != f);
                 search_state[f as usize] = true;
