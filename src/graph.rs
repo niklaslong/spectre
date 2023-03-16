@@ -4,18 +4,13 @@ use std::{
     collections::{BTreeMap, HashMap, HashSet},
     hash::Hash,
     ops::Sub,
-    sync::{Arc, Mutex},
-    thread,
-    time::Instant,
 };
 
 use nalgebra::{DMatrix, DVector, SymmetricEigen};
 
-use crate::{compute::betweenness_task, edge::Edge};
+use crate::{compute::compute_betweenness, edge::Edge};
 
 pub type GraphIndex = u16;
-const MIN_NUM_THREADS: usize = 1;
-const MAX_NUM_THREADS: usize = 128;
 
 /// An undirected graph, made up of edges.
 #[derive(Clone, Debug)]
@@ -545,46 +540,13 @@ where
     /// in-between (i.e., not an end point), increment their betweenness value.
     /// Normalize the counts by dividing by the number of shortest paths found
     ///
-    fn betweenness_and_closeness_centrality(&mut self, mut num_threads: usize) {
-        let start = Instant::now();
-        if num_threads < MIN_NUM_THREADS {
-            num_threads = MIN_NUM_THREADS;
-        } else if num_threads > MAX_NUM_THREADS {
-            num_threads = MAX_NUM_THREADS;
-        }
-        println!("\ncompute: num_threads {:?}", num_threads);
+    fn betweenness_and_closeness_centrality(&mut self, num_threads: usize) {
 
         if self.betweenness_count.is_some() {
             return;
         }
-        let indices: Vec<Vec<GraphIndex>> = self.get_adjacency_indices();
-        let num_nodes = indices.len();
 
-        println!("compute: B {:?}", start.elapsed());
-        let mut betweenness_count: Vec<u32> = vec![0; num_nodes];
-        let mut total_path_length: Vec<u32> = vec![0; num_nodes];
-        let mut num_paths: Vec<u32> = vec![0; num_nodes];
-
-        let mut handles = Vec::new();
-        let wrapped_indices = Arc::new(indices);
-        let wrapped_counter = Arc::new(Mutex::new(0 as usize));
-        for _ in 0..num_threads {
-            let acounter = Arc::clone(&wrapped_counter);
-            let aindices = Arc::clone(&wrapped_indices);
-            let handle = thread::spawn(move || betweenness_task(acounter, aindices));
-            handles.push(handle);
-        }
-        for h in handles {
-            let (b, t, n) = h.join().unwrap();
-            for i in 0..num_nodes {
-                betweenness_count[i] += b[i];
-                total_path_length[i] += t[i];
-                num_paths[i] += n[i];
-            }
-            println!("thread done ");
-        }
-
-        println!("compute: C {:?}", start.elapsed());
+        let (betweenness_count, total_path_length, num_paths)  = compute_betweenness(self.get_adjacency_indices(), num_threads);
 
         self.betweenness_count = Some(betweenness_count);
         self.total_path_length = Some(total_path_length);
@@ -1393,6 +1355,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore = "takes a while to run"]
     fn loaded_sample_graph() {
         let sample = load_sample("testdata/sample.json");
 

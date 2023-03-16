@@ -1,9 +1,14 @@
 use std::{
     sync::{Arc, Mutex},
     time::Instant,
+    thread,
 };
 
-use crate::graph::GraphIndex;
+use crate::graph::{GraphIndex};
+
+const MIN_NUM_THREADS: usize = 1;
+const MAX_NUM_THREADS: usize = 128;
+
 
 /// This is a BFS, Breadth First Search implementation
 /// In addition to counting betweenness attributes, path
@@ -127,7 +132,7 @@ fn betweenness_for_node(
     }
 }
 
-pub fn betweenness_task(
+fn betweenness_task(
     acounter: Arc<Mutex<usize>>,
     aindices: Arc<Vec<Vec<GraphIndex>>>,
 ) -> (Vec<u32>, Vec<u32>, Vec<u32>) {
@@ -161,5 +166,44 @@ pub fn betweenness_task(
             finished = true;
         }
     }
+    (betweenness_count, total_path_length, num_paths)
+}
+
+
+pub fn compute_betweenness(indices: Vec<Vec<GraphIndex>>, mut num_threads: usize) -> (Vec<u32>, Vec<u32>, Vec<u32>) {
+    let start = Instant::now();
+    if num_threads < MIN_NUM_THREADS {
+        num_threads = MIN_NUM_THREADS;
+    } else if num_threads > MAX_NUM_THREADS {
+        num_threads = MAX_NUM_THREADS;
+    }
+    println!("\ncompute: num_threads {:?}", num_threads);
+
+    let num_nodes = indices.len();
+
+    let mut betweenness_count: Vec<u32> = vec![0; num_nodes];
+    let mut total_path_length: Vec<u32> = vec![0; num_nodes];
+    let mut num_paths: Vec<u32> = vec![0; num_nodes];
+
+    let mut handles = Vec::new();
+    let wrapped_indices = Arc::new(indices);
+    let wrapped_counter = Arc::new(Mutex::new(0 as usize));
+    for _ in 0..num_threads {
+        let acounter = Arc::clone(&wrapped_counter);
+        let aindices = Arc::clone(&wrapped_indices);
+        let handle = thread::spawn(move || betweenness_task(acounter, aindices));
+        handles.push(handle);
+    }
+    for h in handles {
+        let (b, t, n) = h.join().unwrap();
+        for i in 0..num_nodes {
+            betweenness_count[i] += b[i];
+            total_path_length[i] += t[i];
+            num_paths[i] += n[i];
+        }
+        println!("thread done ");
+    }
+
+    println!("compute: done {:?}", start.elapsed());
     (betweenness_count, total_path_length, num_paths)
 }
