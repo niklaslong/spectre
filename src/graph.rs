@@ -505,10 +505,10 @@ where
         let num_nodes = nodes_to_keep.len();
         let mut indices = Vec::with_capacity(num_nodes);
         let mut node_map = HashMap::with_capacity(num_nodes);
-        for n in 0..num_nodes {
+        for (n, node) in nodes_to_keep.iter().enumerate().take(num_nodes) {
             // make initial capacity 10% of total
             indices.push(Vec::with_capacity(num_nodes / 10));
-            node_map.insert(nodes_to_keep[n], n);
+            node_map.insert(node, n);
         }
 
         // For each edge, check if the source and target nodes

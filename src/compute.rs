@@ -16,9 +16,9 @@ const MAX_NUM_THREADS: usize = 128;
 fn betweenness_for_node(
     index: usize,
     indices: &Vec<Vec<GraphIndex>>,
-    betweenness_count: &mut Vec<u32>,
-    total_path_length: &mut Vec<u32>,
-    num_paths: &mut Vec<u32>,
+    betweenness_count: &mut [u32],
+    total_path_length: &mut [u32],
+    num_paths: &mut [u32],
 ) {
     let num_nodes = indices.len();
     let mut search_state: Vec<bool> = vec![false; num_nodes];
@@ -87,9 +87,8 @@ fn betweenness_for_node(
                             if newpath.len() > 2 {
                                 // Now we can increment the betweenness counts: newpath is a Shortest Path
                                 // Of course, we skip the first and last nodes
-                                for i in 1..newpath.len() - 1 {
-                                    let b = newpath[i];
-                                    betweenness_count[b as usize] += 1;
+                                for b in newpath.iter().take(newpath.len() - 1).skip(1) {
+                                    betweenness_count[*b as usize] += 1;
                                 }
                             }
                         }
@@ -173,11 +172,7 @@ pub fn compute_betweenness(
     mut num_threads: usize,
 ) -> (Vec<u32>, Vec<u32>, Vec<u32>) {
     let start = Instant::now();
-    if num_threads < MIN_NUM_THREADS {
-        num_threads = MIN_NUM_THREADS;
-    } else if num_threads > MAX_NUM_THREADS {
-        num_threads = MAX_NUM_THREADS;
-    }
+    num_threads = num_threads.clamp(MIN_NUM_THREADS, MAX_NUM_THREADS);
     println!("\ncompute: num_threads {:?}", num_threads);
 
     let num_nodes = indices.len();
@@ -188,7 +183,7 @@ pub fn compute_betweenness(
 
     let mut handles = Vec::new();
     let wrapped_indices = Arc::new(indices);
-    let wrapped_counter = Arc::new(Mutex::new(0 as usize));
+    let wrapped_counter = Arc::new(Mutex::new(0));
     for _ in 0..num_threads {
         let acounter = Arc::clone(&wrapped_counter);
         let aindices = Arc::clone(&wrapped_indices);
