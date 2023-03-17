@@ -25,7 +25,7 @@ fn betweenness_for_node(
 
     // mark node index and all those before index as searched, this sets
     // up the search space for the next iterations of the loop.
-    search_state[0..index+1].fill(true);
+    search_state[0..index + 1].fill(true);
 
     let mut search_list: Vec<GraphIndex> = Vec::with_capacity(num_nodes - index - 1);
     // we are searching for all j's that are greater than index
