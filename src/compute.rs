@@ -1,3 +1,5 @@
+//! A module for performing the multi-threaded computation of betweenness
+
 use std::{
     sync::{Arc, Mutex},
     thread,
@@ -173,6 +175,15 @@ fn betweenness_task(
     (betweenness_count, total_path_length, num_paths)
 }
 
+/// This public function is called by the graph method
+/// betweenness_and_closeness_centrality.  It does all
+/// the heavy lifting with processing the data via
+/// multiple threads
+/// It is reponsibility for:
+/// - setting up the data to be passed to the threads
+/// - instantiating and spawning the threads
+/// - collecting the results when each is finished
+/// - added the results together, and returning them
 pub fn compute_betweenness(
     indices: Vec<Vec<GraphIndex>>,
     mut num_threads: usize,

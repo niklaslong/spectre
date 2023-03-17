@@ -10,6 +10,8 @@ use nalgebra::{DMatrix, DVector, SymmetricEigen};
 
 use crate::{compute::compute_betweenness, edge::Edge};
 
+// for performance reasons, we keep the
+// index size as small as possible
 pub type GraphIndex = u16;
 const MAX_INDICES_NODES: usize = 65535;
 
