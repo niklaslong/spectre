@@ -11,6 +11,7 @@ use nalgebra::{DMatrix, DVector, SymmetricEigen};
 use crate::{compute::compute_betweenness, edge::Edge};
 
 pub type GraphIndex = u16;
+const MAX_INDICES_NODES: usize = 65535;
 
 /// An undirected graph, made up of edges.
 #[derive(Clone, Debug)]
@@ -485,6 +486,10 @@ where
     pub fn get_adjacency_indices(&mut self) -> Vec<Vec<GraphIndex>> {
         let mut indices: Vec<Vec<GraphIndex>> = Vec::new();
         let adjacency_matrix = self.adjacency_matrix();
+
+        if adjacency_matrix.nrows() > MAX_INDICES_NODES {
+            panic!("The number of nodes in the graph {} exceeds the maximum number allowed {}", indices.len(), MAX_INDICES_NODES);
+        }
 
         for m in 0..adjacency_matrix.nrows() {
             let neighbors: Vec<GraphIndex> = adjacency_matrix
