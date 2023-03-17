@@ -490,7 +490,11 @@ where
         let adjacency_matrix = self.adjacency_matrix();
 
         if adjacency_matrix.nrows() > MAX_INDICES_NODES {
-            panic!("The number of nodes in the graph {} exceeds the maximum number allowed {}", indices.len(), MAX_INDICES_NODES);
+            panic!(
+                "The number of nodes in the graph {} exceeds the maximum number allowed {}",
+                indices.len(),
+                MAX_INDICES_NODES
+            );
         }
 
         for m in 0..adjacency_matrix.nrows() {
