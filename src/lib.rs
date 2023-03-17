@@ -40,6 +40,6 @@
 //! //  └          ┘
 //! ```
 
-pub mod compute;
+mod compute;
 pub mod edge;
 pub mod graph;
