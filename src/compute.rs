@@ -189,7 +189,7 @@ pub fn compute_betweenness(
     let mut total_path_length: Vec<u32> = vec![0; num_nodes];
     let mut num_paths: Vec<u32> = vec![0; num_nodes];
 
-    let mut handles = Vec::new();
+    let mut handles = Vec::with_capacity(num_threads);
     let wrapped_indices = Arc::new(indices);
     let wrapped_counter = Arc::new(Mutex::new(0));
 
