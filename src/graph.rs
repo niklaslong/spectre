@@ -1180,8 +1180,8 @@ mod tests {
         graph.insert(Edge::new(2, 6));
         graph.insert(Edge::new(1, 3));
 
-        let between_map = graph.betweenness_centrality(2);
-        let close_map = graph.closeness_centrality(2);
+        let between_map = graph.betweenness_centrality(1);
+        let close_map = graph.closeness_centrality(1);
         let mut betweenness: [f64; 7] = [0.0; 7];
         let mut closeness: [f64; 7] = [0.0; 7];
         for i in 0..7 {

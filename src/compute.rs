@@ -109,12 +109,14 @@ fn betweenness_for_node(
             // now we do bookkeeping for any found
             // shortest paths.
             for f in found_for_this_pathlen {
-                num_paths[f as usize] += 1;
-                num_paths[index] += 1;
-                total_path_length[f as usize] += pathlen;
-                total_path_length[index] += pathlen;
-                search_list.retain(|&x| x != f);
-                search_state[f as usize] = true;
+                if !search_state[f as usize] {
+                    num_paths[f as usize] += 1;
+                    num_paths[index] += 1;
+                    total_path_length[f as usize] += pathlen;
+                    total_path_length[index] += pathlen;
+                    search_list.retain(|&x| x != f);
+                    search_state[f as usize] = true;
+                }
                 if f == j {
                     done = true;
                 }
@@ -215,6 +217,7 @@ pub fn compute_betweenness(
             betweenness_count[i] += b[i];
             total_path_length[i] += t[i];
             num_paths[i] += n[i];
+            println!("i {i} betweenness {} total path len {} num paths {}", b[i], t[i], n[i])
         }
     }
 
