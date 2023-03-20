@@ -13,7 +13,7 @@ use crate::{compute::compute_betweenness, edge::Edge};
 // for performance reasons, we keep the
 // index size as small as possible
 pub type GraphIndex = u16;
-const MAX_INDICES_NODES: usize = 65535;
+const MAX_INDICES_NODES: usize = u16::MAX as usize;
 
 /// An undirected graph, made up of edges.
 #[derive(Clone, Debug)]
