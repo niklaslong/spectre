@@ -489,13 +489,12 @@ where
         let mut indices: Vec<Vec<GraphIndex>> = Vec::new();
         let adjacency_matrix = self.adjacency_matrix();
 
-        if adjacency_matrix.nrows() > MAX_INDICES_NODES {
-            panic!(
-                "The number of nodes in the graph {} exceeds the maximum number allowed {}",
-                indices.len(),
-                MAX_INDICES_NODES
-            );
-        }
+        assert!(
+            adjacency_matrix.nrows() <= MAX_INDICES_NODES,
+            "The number of nodes in the graph {} exceeds the maximum number allowed {}",
+            indices.len(),
+            MAX_INDICES_NODES
+        );
 
         for m in 0..adjacency_matrix.nrows() {
             let neighbors: Vec<GraphIndex> = adjacency_matrix
