@@ -36,8 +36,6 @@ pub struct Graph<T> {
     betweenness_count: Option<Vec<f64>>,
     /// Cache the path lengths when possible.
     total_path_length: Option<Vec<u32>>,
-    /// Cache the num paths when possible.
-    num_paths: Option<Vec<u32>>,
 }
 
 impl<T> Default for Graph<T>
@@ -73,7 +71,6 @@ where
             laplacian_matrix: None,
             betweenness_count: None,
             total_path_length: None,
-            num_paths: None,
         }
     }
 
@@ -448,7 +445,6 @@ where
         self.laplacian_matrix = None;
         self.betweenness_count = None;
         self.total_path_length = None;
-        self.num_paths = None;
     }
 
     /// Returns the set of unique vertices contained within the set of edges.
@@ -555,14 +551,13 @@ where
             return;
         }
 
-        let (betweenness_count, total_path_length, num_paths) =
+        let (betweenness_count, total_path_length) =
             compute_betweenness(self.get_adjacency_indices(), num_threads);
 
             println!("asdf: {:?}", betweenness_count);
 
         self.betweenness_count = Some(betweenness_count);
         self.total_path_length = Some(total_path_length);
-        self.num_paths = Some(num_paths);
     }
 
     /// This method returns the betweenness for a given Graph.
@@ -575,12 +570,6 @@ where
         self.betweenness_and_closeness_centrality(num_threads);
 
         let betweenness_count = self.betweenness_count.as_ref().unwrap();
-        let num_paths = self.num_paths.as_ref().unwrap();
-
-        let mut total_num_paths: u32 = 0;
-        for num_paths in num_paths.iter() {
-            total_num_paths += num_paths;
-        }
 
         let mut centralities = HashMap::new();
         for (node, i) in self.index.as_ref().unwrap() {
@@ -599,16 +588,11 @@ where
         self.betweenness_and_closeness_centrality(num_threads);
 
         let total_path_length = self.total_path_length.as_ref().unwrap();
-        let num_paths = self.num_paths.as_ref().unwrap();
-
-        let mut total_num_paths: u32 = 0;
-        for num_paths in num_paths.iter() {
-            total_num_paths += num_paths;
-        }
 
         let mut centralities = HashMap::new();
+        let divisor: f64 = total_path_length.len() as f64 - 1.0;
         for (n, node) in self.index.as_ref().unwrap().keys().enumerate() {
-            let value = total_path_length[n] as f64 / num_paths[n] as f64;
+            let value = total_path_length[n] as f64 / divisor;
             centralities.insert(*node, value);
         }
 

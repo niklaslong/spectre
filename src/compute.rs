@@ -19,8 +19,7 @@ fn betweenness_for_node(
     index: usize,
     indices: &Vec<Vec<GraphIndex>>,
     betweenness_count: &mut [f64],
-    total_path_length: &mut [u32],
-    num_paths: &mut [u32],
+    total_path_length: &mut [u32]
 ) {
     let num_nodes = indices.len();
     let mut search_state: Vec<bool> = vec![false; num_nodes];
@@ -95,7 +94,6 @@ fn betweenness_for_node(
                                 // Of course, we skip the first and last nodes
                                 let mut inner_path = Vec::<u16>::with_capacity(newpath.len()-2);
                                 for b in newpath.iter().take(newpath.len() - 1).skip(1) {
-                                    // betweenness_count[*b as usize] += 1;
                                     inner_path.push(*b);
                                 }
                                 counts_this_round[*x as usize].push(inner_path);
@@ -119,8 +117,6 @@ fn betweenness_for_node(
             // shortest paths.
             for f in found_for_this_pathlen {
                 if !search_state[f as usize] {
-                    num_paths[f as usize] += 1;
-                    num_paths[index] += 1;
                     total_path_length[f as usize] += pathlen;
                     total_path_length[index] += pathlen;
                     search_list.retain(|&x| x != f);
@@ -161,7 +157,7 @@ fn betweenness_for_node(
 fn betweenness_task(
     acounter: Arc<Mutex<usize>>,
     aindices: Arc<Vec<Vec<GraphIndex>>>,
-) -> (Vec<f64>, Vec<u32>, Vec<u32>) {
+) -> (Vec<f64>, Vec<u32>) {
     let start = Instant::now();
     let indices = &aindices;
     let num_nodes = indices.len();
@@ -171,7 +167,6 @@ fn betweenness_task(
     // and then summed by the caller
     let mut betweenness_count: Vec<f64> = vec![0.0; num_nodes];
     let mut total_path_length: Vec<u32> = vec![0; num_nodes];
-    let mut num_paths: Vec<u32> = vec![0; num_nodes];
 
     let mut finished = false;
     while !finished {
@@ -188,13 +183,12 @@ fn betweenness_task(
                 indices,
                 &mut betweenness_count,
                 &mut total_path_length,
-                &mut num_paths,
             );
         } else {
             finished = true;
         }
     }
-    (betweenness_count, total_path_length, num_paths)
+    (betweenness_count, total_path_length)
 }
 
 /// This public function is called by the graph method
@@ -209,7 +203,7 @@ fn betweenness_task(
 pub fn compute_betweenness(
     indices: Vec<Vec<GraphIndex>>,
     mut num_threads: usize,
-) -> (Vec<f64>, Vec<u32>, Vec<u32>) {
+) -> (Vec<f64>, Vec<u32>) {
     let start = Instant::now();
     num_threads = num_threads.clamp(MIN_NUM_THREADS, MAX_NUM_THREADS);
     println!("\ncompute: num_threads {:?}", num_threads);
@@ -218,7 +212,6 @@ pub fn compute_betweenness(
 
     let mut betweenness_count: Vec<f64> = vec![0.0; num_nodes];
     let mut total_path_length: Vec<u32> = vec![0; num_nodes];
-    let mut num_paths: Vec<u32> = vec![0; num_nodes];
 
     let mut handles = Vec::with_capacity(num_threads);
     let wrapped_indices = Arc::new(indices);
@@ -232,29 +225,16 @@ pub fn compute_betweenness(
     }
 
     for h in handles {
-        let (b, t, n) = h.join().unwrap();
+        let (b, t) = h.join().unwrap();
 
-        // for i in 0..num_nodes {
-        //     betweenness_count[i] += b[i];
-        //     println!("i {i} betweenness {} ", b[i]);
-        // }
-        // for i in 0..num_nodes {
-        //     total_path_length[i] += t[i];
-        //     println!("i {i} total path len {}", t[i]);
-        // }
-        // for i in 0..num_nodes {
-        //     num_paths[i] += n[i];
-        //     println!("i {i} num_paths {}", n[i]);
-        // }
         for i in 0..num_nodes {
             betweenness_count[i] += b[i];
             total_path_length[i] += t[i];
-            num_paths[i] += n[i];
-            // println!("i {i} betweenness {} total path len {} num paths {}", b[i], t[i], n[i])
+            // println!("i {i} betweenness {} total path len {}", b[i], t[i])
         }
     }
 
     println!("compute: done {:?}", start.elapsed());
 
-    (betweenness_count, total_path_length, num_paths)
+    (betweenness_count, total_path_length)
 }
