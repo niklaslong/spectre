@@ -19,7 +19,7 @@ fn betweenness_for_node(
     index: usize,
     indices: &Vec<Vec<GraphIndex>>,
     betweenness_count: &mut [f64],
-    total_path_length: &mut [u32]
+    total_path_length: &mut [u32],
 ) {
     let num_nodes = indices.len();
     let mut search_state: Vec<bool> = vec![false; num_nodes];
@@ -92,7 +92,7 @@ fn betweenness_for_node(
                             if newpath.len() > 2 {
                                 let len = newpath.len() - 2;
                                 let mut inner_path = Vec::<u16>::with_capacity(len);
-                                inner_path.extend_from_slice(&newpath[1..len+1]);
+                                inner_path.extend_from_slice(&newpath[1..len + 1]);
                                 counts_this_round[*x as usize].push(inner_path);
                             }
                         }
@@ -144,7 +144,6 @@ fn betweenness_for_node(
             }
         }
     }
-
 }
 
 /// this function is the thread task

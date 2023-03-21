@@ -1164,7 +1164,6 @@ mod tests {
         graph.insert(Edge::new(4, 5));
         graph.insert(Edge::new(5, 3));
 
-
         let between_map = graph.betweenness_centrality(1);
         let close_map = graph.closeness_centrality(1);
         let mut betweenness: [f64; 6] = [0.0; 6];
@@ -1215,8 +1214,6 @@ mod tests {
         assert_eq!(betweenness, expected_betweenness);
         assert_eq!(closeness, expected_closeness);
     }
-
-
 
     // Helper function to create a sample from a json file.
     // The file will begin like this:
