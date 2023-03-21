@@ -1298,11 +1298,11 @@ mod tests {
         assert_eq!(betweenness_centrality.get_key_value(a), Some((&a, &0.0)));
         assert_eq!(
             betweenness_centrality.get_key_value(b),
-            Some((&b, &(2.0 / 12.0)))
+            Some((&b, &2.0))
         );
         assert_eq!(
             betweenness_centrality.get_key_value(c),
-            Some((&c, &(2.0 / 12.0)))
+            Some((&c, &2.0))
         );
         assert_eq!(betweenness_centrality.get_key_value(d), Some((&d, &0.0)));
     }
@@ -1317,7 +1317,7 @@ mod tests {
         assert_eq!(betweenness_centrality.get_key_value(a), Some((&a, &0.0)));
         assert_eq!(
             betweenness_centrality.get_key_value(b),
-            Some((&b, &(6.0 / 20.0)))
+            Some((&b, &6.0))
         );
         assert_eq!(betweenness_centrality.get_key_value(c), Some((&c, &0.0)));
         assert_eq!(betweenness_centrality.get_key_value(d), Some((&d, &0.0)));
