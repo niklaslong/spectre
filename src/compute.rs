@@ -225,7 +225,6 @@ pub fn compute_betweenness(
         for i in 0..num_nodes {
             betweenness_count[i] += b[i];
             total_path_length[i] += t[i];
-            // println!("i {i} betweenness {} total path len {}", b[i], t[i])
         }
     }
 
