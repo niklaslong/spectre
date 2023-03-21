@@ -1296,14 +1296,8 @@ mod tests {
         let betweenness_centrality = graph.betweenness_centrality(2);
 
         assert_eq!(betweenness_centrality.get_key_value(a), Some((&a, &0.0)));
-        assert_eq!(
-            betweenness_centrality.get_key_value(b),
-            Some((&b, &2.0))
-        );
-        assert_eq!(
-            betweenness_centrality.get_key_value(c),
-            Some((&c, &2.0))
-        );
+        assert_eq!(betweenness_centrality.get_key_value(b), Some((&b, &2.0)));
+        assert_eq!(betweenness_centrality.get_key_value(c), Some((&c, &2.0)));
         assert_eq!(betweenness_centrality.get_key_value(d), Some((&d, &0.0)));
     }
 
@@ -1315,10 +1309,7 @@ mod tests {
         let betweenness_centrality = graph.betweenness_centrality(2);
 
         assert_eq!(betweenness_centrality.get_key_value(a), Some((&a, &0.0)));
-        assert_eq!(
-            betweenness_centrality.get_key_value(b),
-            Some((&b, &6.0))
-        );
+        assert_eq!(betweenness_centrality.get_key_value(b), Some((&b, &6.0)));
         assert_eq!(betweenness_centrality.get_key_value(c), Some((&c, &0.0)));
         assert_eq!(betweenness_centrality.get_key_value(d), Some((&d, &0.0)));
         assert_eq!(betweenness_centrality.get_key_value(e), Some((&e, &0.0)));
