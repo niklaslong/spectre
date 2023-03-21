@@ -234,16 +234,18 @@ pub fn compute_betweenness(
     for h in handles {
         let (b, t, n) = h.join().unwrap();
 
-        for i in 0..num_nodes {
-            betweenness_count[i] += b[i];
-            total_path_length[i] += t[i];
-            num_paths[i] += n[i];
-            println!("i {i} betweenness {} ", b[i]);
-        }
-        for i in 0..num_nodes {
-            total_path_length[i] += t[i];
-            println!("i {i} total path len {}", t[i]);
-        }
+        // for i in 0..num_nodes {
+        //     betweenness_count[i] += b[i];
+        //     println!("i {i} betweenness {} ", b[i]);
+        // }
+        // for i in 0..num_nodes {
+        //     total_path_length[i] += t[i];
+        //     println!("i {i} total path len {}", t[i]);
+        // }
+        // for i in 0..num_nodes {
+        //     num_paths[i] += n[i];
+        //     println!("i {i} num_paths {}", n[i]);
+        // }
         for i in 0..num_nodes {
             betweenness_count[i] += b[i];
             total_path_length[i] += t[i];
