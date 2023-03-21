@@ -90,12 +90,9 @@ fn betweenness_for_node(
                             // but we queue it first, in case other paths for same i-q are found
                             found_for_this_pathlen.push(*x);
                             if newpath.len() > 2 {
-                                // Now we can increment the betweenness counts: newpath is a Shortest Path
-                                // Of course, we skip the first and last nodes
-                                let mut inner_path = Vec::<u16>::with_capacity(newpath.len()-2);
-                                for b in newpath.iter().take(newpath.len() - 1).skip(1) {
-                                    inner_path.push(*b);
-                                }
+                                let len = newpath.len() - 2;
+                                let mut inner_path = Vec::<u16>::with_capacity(len);
+                                inner_path.extend_from_slice(&newpath[1..len+1]);
                                 counts_this_round[*x as usize].push(inner_path);
                             }
                         }
