@@ -18,7 +18,7 @@ const MAX_NUM_THREADS: usize = 128;
 fn betweenness_for_node(
     index: usize,
     indices: &Vec<Vec<GraphIndex>>,
-    betweenness_count: &mut [u32],
+    betweenness_count: &mut [f64],
     total_path_length: &mut [u32],
     num_paths: &mut [u32],
 ) {
@@ -33,6 +33,12 @@ fn betweenness_for_node(
     // we are searching for all j's that are greater than index
     for j in index + 1..num_nodes {
         search_list.push(j as GraphIndex);
+    }
+
+    // this stores our betweenness source data
+    let mut counts_this_round = Vec::with_capacity(num_nodes);
+    for _ in 0..num_nodes {
+        counts_this_round.push(Vec::new());
     }
 
     while !search_list.is_empty() {
@@ -87,9 +93,12 @@ fn betweenness_for_node(
                             if newpath.len() > 2 {
                                 // Now we can increment the betweenness counts: newpath is a Shortest Path
                                 // Of course, we skip the first and last nodes
+                                let mut inner_path = Vec::<u16>::with_capacity(newpath.len()-2);
                                 for b in newpath.iter().take(newpath.len() - 1).skip(1) {
-                                    betweenness_count[*b as usize] += 1;
+                                    // betweenness_count[*b as usize] += 1;
+                                    inner_path.push(*b);
                                 }
+                                counts_this_round[*x as usize].push(inner_path);
                             }
                         }
                         queued_for_next_round.push(newpath);
@@ -132,6 +141,17 @@ fn betweenness_for_node(
             pathlen += 1;
         }
     }
+
+    // Update the betweenness counts
+    for n in 0..num_nodes {
+        let node = &counts_this_round[n];
+        for inner_path in node {
+            for b in inner_path {
+                betweenness_count[*b as usize] += 1.0 / node.len() as f64;
+            }
+        }
+    }
+
 }
 
 /// this function is the thread task
@@ -141,7 +161,7 @@ fn betweenness_for_node(
 fn betweenness_task(
     acounter: Arc<Mutex<usize>>,
     aindices: Arc<Vec<Vec<GraphIndex>>>,
-) -> (Vec<u32>, Vec<u32>, Vec<u32>) {
+) -> (Vec<f64>, Vec<u32>, Vec<u32>) {
     let start = Instant::now();
     let indices = &aindices;
     let num_nodes = indices.len();
@@ -149,7 +169,7 @@ fn betweenness_task(
     // each worker thread keeps its own cache of data
     // these are returned when the thread finishes
     // and then summed by the caller
-    let mut betweenness_count: Vec<u32> = vec![0; num_nodes];
+    let mut betweenness_count: Vec<f64> = vec![0.0; num_nodes];
     let mut total_path_length: Vec<u32> = vec![0; num_nodes];
     let mut num_paths: Vec<u32> = vec![0; num_nodes];
 
@@ -189,14 +209,14 @@ fn betweenness_task(
 pub fn compute_betweenness(
     indices: Vec<Vec<GraphIndex>>,
     mut num_threads: usize,
-) -> (Vec<u32>, Vec<u32>, Vec<u32>) {
+) -> (Vec<f64>, Vec<u32>, Vec<u32>) {
     let start = Instant::now();
     num_threads = num_threads.clamp(MIN_NUM_THREADS, MAX_NUM_THREADS);
     println!("\ncompute: num_threads {:?}", num_threads);
 
     let num_nodes = indices.len();
 
-    let mut betweenness_count: Vec<u32> = vec![0; num_nodes];
+    let mut betweenness_count: Vec<f64> = vec![0.0; num_nodes];
     let mut total_path_length: Vec<u32> = vec![0; num_nodes];
     let mut num_paths: Vec<u32> = vec![0; num_nodes];
 
@@ -213,11 +233,22 @@ pub fn compute_betweenness(
 
     for h in handles {
         let (b, t, n) = h.join().unwrap();
+
         for i in 0..num_nodes {
             betweenness_count[i] += b[i];
             total_path_length[i] += t[i];
             num_paths[i] += n[i];
-            println!("i {i} betweenness {} total path len {} num paths {}", b[i], t[i], n[i])
+            println!("i {i} betweenness {} ", b[i]);
+        }
+        for i in 0..num_nodes {
+            total_path_length[i] += t[i];
+            println!("i {i} total path len {}", t[i]);
+        }
+        for i in 0..num_nodes {
+            betweenness_count[i] += b[i];
+            total_path_length[i] += t[i];
+            num_paths[i] += n[i];
+            // println!("i {i} betweenness {} total path len {} num paths {}", b[i], t[i], n[i])
         }
     }
 

@@ -33,7 +33,7 @@ pub struct Graph<T> {
     /// Cache the laplacian matrix when possible.
     laplacian_matrix: Option<DMatrix<f64>>,
     /// Cache the betweenness count when possible.
-    betweenness_count: Option<Vec<u32>>,
+    betweenness_count: Option<Vec<f64>>,
     /// Cache the path lengths when possible.
     total_path_length: Option<Vec<u32>>,
     /// Cache the num paths when possible.
@@ -1167,8 +1167,49 @@ mod tests {
         assert_eq!(graph.index.as_ref().unwrap().len(), 2);
     }
 
+
+
+
     #[test]
-    fn closeness_randomish_graph() {
+    fn test_graph() {
+        let mut graph: Graph<usize> = Graph::new();
+        // this graph reproduces the image at:
+        // https://www.youtube.com/watch?v=ptqt2zr9ZRE
+        graph.insert(Edge::new(0, 1));
+        graph.insert(Edge::new(1, 3));
+        graph.insert(Edge::new(3, 4));
+        graph.insert(Edge::new(4, 2));
+        graph.insert(Edge::new(2, 0));
+        graph.insert(Edge::new(4, 5));
+        graph.insert(Edge::new(5, 3));
+
+
+        let between_map = graph.betweenness_centrality(1);
+        let close_map = graph.closeness_centrality(1);
+        let mut betweenness: [f64; 7] = [0.0; 7];
+        let mut closeness: [f64; 7] = [0.0; 7];
+        for i in 0..7 {
+            betweenness[i] = *between_map.get(&i).unwrap();
+            closeness[i] = *close_map.get(&i).unwrap();
+        }
+
+        let total_path_length = [28, 11, 13, 14, 19, 14, 19];
+        let num_paths = [10, 7, 7, 7, 7, 7, 7];
+        let total_num_paths: i32 = 52;
+        let mut expected_closeness: [f64; 7] = [0.0; 7];
+        let mut expected_betweenness: [f64; 7] = [0.0; 7];
+        let betweenness_count = [1, 13, 11, 4, 0, 4, 0];
+        for i in 0..7 {
+            expected_closeness[i] = total_path_length[i] as f64 / num_paths[i] as f64;
+            expected_betweenness[i] = betweenness_count[i] as f64 / total_num_paths as f64;
+        }
+
+        assert_eq!(betweenness, expected_betweenness);
+        assert_eq!(closeness, expected_closeness);
+    }
+
+    #[test]
+    fn randomish_graph() {
         let mut graph: Graph<usize> = Graph::new();
         // this graph reproduces the image at:
         // https://www.sotr.blog/articles/breadth-first-search
