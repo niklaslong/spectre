@@ -554,8 +554,6 @@ where
         let (betweenness_count, total_path_length) =
             compute_betweenness(self.get_adjacency_indices(), num_threads);
 
-            println!("asdf: {:?}", betweenness_count);
-
         self.betweenness_count = Some(betweenness_count);
         self.total_path_length = Some(total_path_length);
     }
