@@ -91,6 +91,9 @@ fn betweenness_for_node(
                             found_for_this_pathlen.push(*x);
                             if newpath.len() > 2 {
                                 let len = newpath.len() - 2;
+                                // the so-called inner path is a vector of all the nodes
+                                // not including the two end nodes.  This is necessary for
+                                // the correct computation of betweenness
                                 let mut inner_path = Vec::<u16>::with_capacity(len);
                                 inner_path.extend_from_slice(&newpath[1..len + 1]);
                                 counts_this_round[*x as usize].push(inner_path);
