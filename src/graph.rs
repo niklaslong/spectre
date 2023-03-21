@@ -571,7 +571,7 @@ where
 
         let mut centralities = HashMap::new();
         for (node, i) in self.index.as_ref().unwrap() {
-            let value = betweenness_count[*i] as f64;
+            let value = betweenness_count[*i];
             centralities.insert(*node, value);
         }
         centralities

@@ -136,8 +136,7 @@ fn betweenness_for_node(
     }
 
     // Update the betweenness counts
-    for n in 0..num_nodes {
-        let node = &counts_this_round[n];
+    for node in counts_this_round.iter().take(num_nodes) {
         for inner_path in node {
             for b in inner_path {
                 betweenness_count[*b as usize] += 1.0 / node.len() as f64;
