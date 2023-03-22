@@ -166,8 +166,7 @@ fn betweenness_task(
     let mut betweenness_count: Vec<f64> = vec![0.0; num_nodes];
     let mut total_path_length: Vec<u32> = vec![0; num_nodes];
 
-    let mut finished = false;
-    while !finished {
+    loop {
         let mut counter = acounter.lock().unwrap();
         let index: usize = *counter;
         *counter += 1;
@@ -183,7 +182,7 @@ fn betweenness_task(
                 &mut total_path_length,
             );
         } else {
-            finished = true;
+            break;
         }
     }
     (betweenness_count, total_path_length)
