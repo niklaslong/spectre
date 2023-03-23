@@ -48,9 +48,7 @@ fn betweenness_for_node(
     }
 
     while !stack.is_empty() {
-        let w = stack[stack.len() - 1];
-        stack.pop();
-
+        let w = stack.pop().unwrap();
         for j in 0..totals[w].len() {
             let v = totals[w][j];
             delta[v] += sigma[v] / sigma[w] * (1.0 + delta[w]);

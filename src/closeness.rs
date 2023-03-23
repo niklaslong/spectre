@@ -19,8 +19,7 @@ fn closeness_for_node(index: usize, indices: &Vec<Vec<GraphIndex>>, total_path_l
     queue.push_back(index);
 
     while !queue.is_empty() {
-        let current = *queue.front().unwrap();
-        queue.pop_front();
+        let current = queue.pop_front().unwrap();
         let len = indices[current].len();
         for j in 0..len {
             if deltas[indices[current][j] as usize] == -1 {
