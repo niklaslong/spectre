@@ -75,8 +75,7 @@ fn betweenness_task(acounter: Arc<Mutex<usize>>, aindices: Arc<Vec<Vec<GraphInde
     // and then summed by the caller
     let mut betweenness_count: Vec<f64> = vec![0.0; num_nodes];
 
-    let mut finished = false;
-    while !finished {
+    loop {
         let mut counter = acounter.lock().unwrap();
         let index: usize = *counter;
         *counter += 1;
@@ -87,7 +86,7 @@ fn betweenness_task(acounter: Arc<Mutex<usize>>, aindices: Arc<Vec<Vec<GraphInde
             }
             betweenness_for_node(index, indices, &mut betweenness_count);
         } else {
-            finished = true;
+            break;
         }
     }
     betweenness_count

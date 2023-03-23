@@ -47,8 +47,7 @@ fn closeness_task(acounter: Arc<Mutex<usize>>, aindices: Arc<Vec<Vec<GraphIndex>
     // and then summed by the caller
     let mut total_path_length: Vec<u32> = vec![0; num_nodes];
 
-    let mut finished = false;
-    while !finished {
+    loop {
         let mut counter = acounter.lock().unwrap();
         let index: usize = *counter;
         *counter += 1;
@@ -59,7 +58,7 @@ fn closeness_task(acounter: Arc<Mutex<usize>>, aindices: Arc<Vec<Vec<GraphIndex>
             }
             closeness_for_node(index, indices, &mut total_path_length);
         } else {
-            finished = true;
+            break;
         }
     }
     total_path_length
