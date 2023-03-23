@@ -40,6 +40,7 @@
 //! //  └          ┘
 //! ```
 
-mod compute;
+mod betweenness;
+mod closeness;
 pub mod edge;
 pub mod graph;
