@@ -104,7 +104,6 @@ pub fn compute_betweenness(
     mut num_threads: usize,
     normalize: bool,
 ) -> Vec<f64> {
-    println!("compute betweennes normalize {normalize}");
     let start = Instant::now();
     num_threads = num_threads.clamp(MIN_NUM_THREADS, MAX_NUM_THREADS);
     println!("\ncompute_betweenness: num_threads {:?}", num_threads);
