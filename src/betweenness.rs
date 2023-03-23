@@ -7,10 +7,7 @@ use std::{
     time::Instant,
 };
 
-use crate::graph::GraphIndex;
-
-const MIN_NUM_THREADS: usize = 1;
-const MAX_NUM_THREADS: usize = 128;
+use crate::graph::{GraphIndex, MAX_NUM_THREADS, MIN_NUM_THREADS};
 
 /// this is an implementation of Ulrik Brandes's
 /// A Faster Algorithm for Betweenness Centrality

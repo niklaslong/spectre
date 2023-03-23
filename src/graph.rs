@@ -15,6 +15,9 @@ use crate::{betweenness::compute_betweenness, closeness::compute_closeness, edge
 pub type GraphIndex = u16;
 const MAX_INDICES_NODES: usize = u16::MAX as usize;
 
+pub const MIN_NUM_THREADS: usize = 1;
+pub const MAX_NUM_THREADS: usize = 128;
+
 /// An undirected graph, made up of edges.
 #[derive(Clone, Debug)]
 pub struct Graph<T> {

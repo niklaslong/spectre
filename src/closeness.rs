@@ -7,10 +7,7 @@ use std::{
     time::Instant,
 };
 
-use crate::graph::GraphIndex;
-
-const MIN_NUM_THREADS: usize = 1;
-const MAX_NUM_THREADS: usize = 128;
+use crate::graph::{GraphIndex, MAX_NUM_THREADS, MIN_NUM_THREADS};
 
 fn closeness_for_node(index: usize, indices: &Vec<Vec<GraphIndex>>, total_path_length: &mut [u32]) {
     let num_nodes = indices.len();
