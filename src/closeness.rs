@@ -32,10 +32,9 @@ fn closeness_for_node(index: usize, indices: &Vec<Vec<GraphIndex>>, total_path_l
     }
 }
 
-/// this function is the thread task
-/// grabs next unprocessed node
-/// if no more nodes, exits
-/// returning total path lengths
+/// This function is the thread task, grabbing the
+/// next unprocessed node.  If no more nodes, we exit,
+/// returning path length totals.
 fn closeness_task(acounter: Arc<Mutex<usize>>, aindices: Arc<Vec<Vec<GraphIndex>>>) -> Vec<u32> {
     let start = Instant::now();
     let indices = &aindices;

@@ -59,10 +59,9 @@ fn betweenness_for_node(
     }
 }
 
-/// this function is the thread task
-/// grabs next unprocessed node
-/// if no more nodes, exits
-/// returning betweenness
+/// This function is the thread task, grabbing the
+/// next unprocessed node.  If no more nodes, we exit,
+/// returning betweenness values.
 fn betweenness_task(acounter: Arc<Mutex<usize>>, aindices: Arc<Vec<Vec<GraphIndex>>>) -> Vec<f64> {
     let start = Instant::now();
     let indices = &aindices;
