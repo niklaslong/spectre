@@ -1269,10 +1269,12 @@ mod tests {
         let total_path_length = [15, 9, 10, 12, 15, 12, 15];
         let mut expected_closeness = [0.0; N];
         let mut expected_betweenness = [0.5, 9.5, 9.0, 2.0, 0.0, 2.0, 0.0];
+        const DIVISOR: f64 = ((N - 1) * (N - 2) / 2) as f64;
         for i in 0..N {
             expected_closeness[i] = total_path_length[i] as f64 / (N - 1) as f64;
-            expected_betweenness[i] /= ((N - 1) * (N - 2) / 2) as f64;
+            expected_betweenness[i] /= DIVISOR;
         }
+
 
         assert_eq!(betweenness, expected_betweenness);
         assert_eq!(closeness, expected_closeness);
