@@ -93,6 +93,7 @@ fn betweenness_task(acounter: Arc<Mutex<usize>>, aindices: Arc<Vec<Vec<GraphInde
 /// - instantiating and spawning the threads
 /// - collecting the results when each is finished
 /// - added the results together, and returning them
+/// It public for graph, but is not exposed in the public library interface.
 pub fn compute_betweenness(
     indices: Vec<Vec<GraphIndex>>,
     mut num_threads: usize,

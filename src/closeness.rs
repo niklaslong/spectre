@@ -8,6 +8,9 @@ use std::{
 
 use crate::graph::{GraphIndex, MAX_NUM_THREADS, MIN_NUM_THREADS};
 
+/// This does a BFS (breadth first search) for a given node.
+/// Tt finds the shortest paths to all other nodes, summing
+/// the lengths in a node-indexed array that is passed in.
 fn closeness_for_node(index: usize, indices: &Vec<Vec<GraphIndex>>, total_path_length: &mut [u32]) {
     let num_nodes = indices.len();
 
@@ -57,6 +60,16 @@ fn closeness_task(acounter: Arc<Mutex<usize>>, aindices: Arc<Vec<Vec<GraphIndex>
     total_path_length
 }
 
+/// This function is called by the graph method
+/// closeness_centrality.  It does all
+/// the heavy lifting with processing the data via
+/// multiple threads.
+/// It is reponsibility for:
+/// - setting up the data to be passed to the threads
+/// - instantiating and spawning the threads
+/// - collecting the results when each is finished
+/// - added the results together, and returning them
+/// It public for graph, but is not exposed in the public library interface.
 pub fn compute_closeness(indices: Vec<Vec<GraphIndex>>, mut num_threads: usize) -> Vec<u32> {
     num_threads = num_threads.clamp(MIN_NUM_THREADS, MAX_NUM_THREADS);
 
