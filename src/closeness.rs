@@ -4,7 +4,6 @@ use std::{
     collections::VecDeque,
     sync::{Arc, Mutex},
     thread,
-    time::Instant,
 };
 
 use crate::graph::{GraphIndex, MAX_NUM_THREADS, MIN_NUM_THREADS};
@@ -36,7 +35,6 @@ fn closeness_for_node(index: usize, indices: &Vec<Vec<GraphIndex>>, total_path_l
 /// next unprocessed node.  If no more nodes, we exit,
 /// returning path length totals.
 fn closeness_task(acounter: Arc<Mutex<usize>>, aindices: Arc<Vec<Vec<GraphIndex>>>) -> Vec<u32> {
-    let start = Instant::now();
     let indices = &aindices;
     let num_nodes = indices.len();
 
@@ -51,9 +49,6 @@ fn closeness_task(acounter: Arc<Mutex<usize>>, aindices: Arc<Vec<Vec<GraphIndex>
         *counter += 1;
         drop(counter);
         if index < num_nodes {
-            if index % 100 == 0 {
-                println!("node: {}, time: {:?}", index, start.elapsed());
-            }
             closeness_for_node(index, indices, &mut total_path_length);
         } else {
             break;
@@ -63,9 +58,7 @@ fn closeness_task(acounter: Arc<Mutex<usize>>, aindices: Arc<Vec<Vec<GraphIndex>
 }
 
 pub fn compute_closeness(indices: Vec<Vec<GraphIndex>>, mut num_threads: usize) -> Vec<u32> {
-    let start = Instant::now();
     num_threads = num_threads.clamp(MIN_NUM_THREADS, MAX_NUM_THREADS);
-    println!("\ncompute_closeness: num_threads {:?}", num_threads);
 
     let num_nodes = indices.len();
 
@@ -89,8 +82,6 @@ pub fn compute_closeness(indices: Vec<Vec<GraphIndex>>, mut num_threads: usize) 
             total_path_length[i] += t[i];
         }
     }
-
-    println!("\ncompute_closeness: done {:?}", start.elapsed());
 
     total_path_length
 }
