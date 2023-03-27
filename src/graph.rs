@@ -1275,7 +1275,6 @@ mod tests {
             expected_betweenness[i] /= DIVISOR;
         }
 
-
         assert_eq!(betweenness, expected_betweenness);
         assert_eq!(closeness, expected_closeness);
     }
