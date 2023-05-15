@@ -544,10 +544,9 @@ where
 
     /// This method returns the betweenness for a given Graph.
     ///
-    /// Betweenness: When a shortest path is found, for all nodes
-    /// in-between (i.e., not an end point), increment their betweenness value.
-    /// Normalize the counts by dividing by the number of shortest paths found
-    ///
+    /// Betweenness: When a shortest path is found, for all nodes in-between (i.e., not an end
+    /// point), increment their betweenness value. Normalize the counts by dividing by the number
+    /// of shortest paths found.
     pub fn betweenness_centrality(
         &mut self,
         num_threads: usize,
@@ -571,9 +570,8 @@ where
 
     /// This method returns the closeness for a given Graph.
     ///
-    /// Closeness: for each node, find all shortest paths to all other nodes.
-    /// Accumulate all path lengths, accumulate number of paths, and then compute
-    /// average path length.
+    /// Closeness: for each node, find all shortest paths to all other nodes. Accumulate all path
+    /// lengths, accumulate number of paths, and then compute average path length.
     pub fn closeness_centrality(&mut self, num_threads: usize) -> HashMap<T, f64> {
         if self.total_path_length.is_none() {
             let total_path_length = compute_closeness(self.get_adjacency_indices(), num_threads);
