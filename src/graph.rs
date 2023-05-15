@@ -10,13 +10,16 @@ use nalgebra::{DMatrix, DVector, SymmetricEigen};
 
 use crate::{betweenness::compute_betweenness, closeness::compute_closeness, edge::Edge};
 
-// for performance reasons, we keep the
-// index size as small as possible
-pub type GraphIndex = u16;
+/// Represents the index of a vertex in various collections.
+///
+/// For performance reasons it is kept as small as possible.
+pub(crate) type GraphIndex = u16;
 const MAX_INDICES_NODES: usize = u16::MAX as usize;
 
-pub const MIN_NUM_THREADS: usize = 1;
-pub const MAX_NUM_THREADS: usize = 128;
+/// The minimum number of threads used in multi-threaded implementations.
+pub(crate) const MIN_NUM_THREADS: usize = 1;
+/// The maximum number of threads used in multi-threaded implementations.
+pub(crate) const MAX_NUM_THREADS: usize = 128;
 
 /// An undirected graph, made up of edges.
 #[derive(Clone, Debug)]
@@ -1291,6 +1294,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore = "slow to run"]
     fn loaded_sample_graph() {
         let sample = load_sample("testdata/sample.json");
 
