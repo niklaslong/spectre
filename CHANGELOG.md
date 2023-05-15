@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.0]
+
+### Changed
+
+- Split betweeness and closeness computation into separate functions.
+
+### Added
+
+- Multi-threaded computation of betweenness and closeness metrics.
+
 ## [0.6.0]
 
 ### Added
@@ -65,7 +75,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Clear internal cache on `Graph::remove`.
 
-[unreleased]: https://github.com/niklaslong/spectre/compare/v0.6.0...HEAD
+[unreleased]: https://github.com/niklaslong/spectre/compare/v0.7.0...HEAD
+[0.7.0]: https://github.com/niklaslong/spectre/compare/v0.5.2...v0.7.0
 [0.6.0]: https://github.com/niklaslong/spectre/compare/v0.5.2...v0.6.0
 [0.5.2]: https://github.com/niklaslong/spectre/compare/v0.5.1...v0.5.2
 [0.5.1]: https://github.com/niklaslong/spectre/compare/v0.5.0...v0.5.1
